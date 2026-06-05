@@ -1,0 +1,1971 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REPSYNC</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #181818;
+    --surface2: #222222;
+    --surface3: #2e2e2e;
+    --text: #f0f0f0;
+    --text2: #aaaaaa;
+    --text3: #666666;
+    --border: rgba(255,255,255,0.18);
+    --border2: rgba(255,255,255,0.08);
+    --radius: 12px;
+    --radius-sm: 7px;
+    --font: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    --font-brand: 'Inter', var(--font);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-weight: 700;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* HEADER */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(14,14,14,0.96);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border2);
+    padding: 0 2.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 58px;
+  }
+  .logo {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.05rem; font-weight: 900;
+    letter-spacing: 0.14em; color: var(--text);
+    text-transform: uppercase; cursor: pointer;
+  }
+  nav { display: flex; gap: 2px; }
+  nav button {
+    background: none; border: none; color: var(--text3);
+    padding: 7px 16px; border-radius: 6px; cursor: pointer;
+    font-size: 0.78rem; font-family: var(--font); font-weight: 700;
+    letter-spacing: 0.04em; transition: all 0.15s;
+  }
+  nav button:hover { color: var(--text2); background: var(--surface2); }
+  nav button.active { color: var(--text); background: var(--surface2); }
+  /* SECTIONS */
+  .section { display: none; padding: 2rem; max-width: 1100px; margin: 0 auto; }
+  .section.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+  .card-title {
+    font-size: 1rem; font-weight: 500; color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-title .icon { font-size: 1.1rem; }
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem; font-weight: 700; color: var(--text3);
+    letter-spacing: 0.14em; text-transform: uppercase;
+    margin-bottom: 1.75rem;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+  }
+  /* GOALS */
+  .goal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+  .goal-card {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 1rem;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .goal-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.25); }
+  .goal-card .tag {
+    display: inline-block; font-size: 0.7rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px; margin-bottom: 0.75rem;
+    letter-spacing: 0.05em; background: var(--surface3); color: var(--text2);
+  }
+  .goal-card .goal-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .goal-card .goal-desc { font-size: 0.83rem; color: var(--text2); margin-bottom: 1rem; line-height: 1.6; }
+  .goal-done-row { display: flex; align-items: center; gap: 10px; margin-top: 0.25rem; }
+  .goal-done-check {
+    width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; flex-shrink: 0; font-size: 0.8rem;
+  }
+  .goal-done-check.done { background: var(--text); border-color: var(--text); color: #111; font-weight: 700; }
+  .goal-done-label { font-size: 0.8rem; color: var(--text3); }
+  .goal-card.achieved { border-color: rgba(255,255,255,0.35); }
+  .goal-card.achieved .goal-title { color: var(--text); }
+  .goal-card .btn-edit {
+    position: absolute; top: 1rem; right: 1rem;
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; font-size: 1rem; opacity: 0; transition: opacity 0.2s;
+  }
+  .goal-card:hover .btn-edit { opacity: 1; }
+  /* ADD GOAL */
+  .btn-add {
+    background: none; border: 1px dashed var(--border);
+    border-radius: var(--radius-sm); padding: 1rem;
+    width: 100%; cursor: pointer; color: var(--text3);
+    font-family: var(--font); font-weight: 700; font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.2s;
+  }
+  .btn-add:hover { border-color: rgba(255,255,255,0.4); color: var(--text); background: var(--surface2); }
+  /* CALENDAR */
+  .calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .calendar-nav { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 6px 14px; color: var(--text); cursor: pointer; font-family: var(--font); font-weight: 700; transition: all 0.2s; }
+  .calendar-nav:hover { background: var(--surface3); }
+  .calendar-month { font-size: 1.1rem; font-weight: 700; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-day-name { text-align: center; font-size: 0.72rem; color: var(--text3); padding: 6px 0; letter-spacing: 0.05em; }
+  .cal-day {
+    aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem;
+    transition: all 0.15s; position: relative; gap: 3px;
+  }
+  .cal-day:hover { background: var(--surface3); }
+  .cal-day.today { background: var(--surface3); color: var(--text); font-weight: 700; border: 1px solid rgba(255,255,255,0.3); }
+  .cal-day.has-log::after {
+    content: ''; display: block; width: 5px; height: 5px;
+    background: var(--text2); border-radius: 50%;
+  }
+  .cal-day.other-month { color: var(--text3); }
+  .cal-day.selected { background: var(--text); color: #111; font-weight: 700; }
+  /* PLANS */
+  .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 700px) { .plan-grid { grid-template-columns: 1fr; } }
+  .plan-card { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 1.25rem; }
+  .plan-card .plan-label { font-size: 0.72rem; color: var(--text3); letter-spacing: 0.06em; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; }
+  .plan-card .plan-period { font-size: 0.9rem; color: var(--text); margin-bottom: 1rem; font-weight: 700; }
+  .plan-list { list-style: none; }
+  .plan-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid var(--border2); font-size: 0.85rem; line-height: 1.5;
+  }
+  .plan-list li:last-child { border-bottom: none; }
+  .plan-check { flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 1px; transition: all 0.15s; }
+  .plan-check.done { background: var(--text); border-color: var(--text); }
+  .plan-check.done::after { content: '✓'; font-size: 0.65rem; color: #111; font-weight: 700; }
+  .plan-text.done { text-decoration: line-through; color: var(--text3); }
+  /* DIARY */
+  .diary-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;
+  }
+  .btn-primary {
+    background: var(--text); border: none; color: #0e0e0e;
+    padding: 8px 18px; border-radius: 6px; cursor: pointer;
+    font-family: 'Inter', var(--font); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    transition: all 0.2s; display: flex; align-items: center; gap: 7px;
+  }
+  .btn-primary:hover { background: var(--text2); }
+  .diary-entry {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius); overflow: hidden; margin-bottom: 1.25rem;
+    transition: border-color 0.2s;
+  }
+  .diary-entry:hover { border-color: var(--border); }
+  .diary-entry-header {
+    padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem;
+    border-bottom: 1px solid var(--border2); cursor: pointer;
+  }
+  .diary-date-badge {
+    background: var(--surface3); border: 1px solid var(--border);
+    border-radius: 10px; padding: 6px 14px; text-align: center; flex-shrink: 0;
+  }
+  .diary-date-badge .dday { font-size: 1.4rem; font-weight: 700; color: var(--text); line-height: 1; }
+  .diary-date-badge .dmonth { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
+  .diary-meta { flex: 1; }
+  .diary-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+  .diary-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge {
+    font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .badge-purple { background: var(--surface3); color: var(--text2); }
+  .badge-teal { background: var(--surface3); color: var(--text2); }
+  .badge-yellow { background: var(--surface3); color: var(--text2); }
+  .badge-red { background: var(--surface3); color: var(--text2); }
+  .diary-body { padding: 1.5rem; }
+  .diary-note { font-size: 0.88rem; color: var(--text2); line-height: 1.75; margin-bottom: 1.25rem; white-space: pre-wrap; }
+  .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .media-item {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); overflow: hidden; position: relative;
+    aspect-ratio: 1; cursor: pointer; transition: transform 0.15s;
+  }
+  .media-item:hover { transform: scale(1.02); }
+  .media-item img, .media-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .media-caption {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.72));
+    padding: 16px 8px 8px; font-size: 0.72rem; color: rgba(255,255,255,0.85);
+  }
+  .media-type-badge {
+    position: absolute; top: 6px; left: 6px;
+    background: rgba(0,0,0,0.6); border-radius: 5px;
+    padding: 2px 7px; font-size: 0.65rem; color: white; font-weight: 700;
+  }
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.85); align-items: center; justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; padding: 1.75rem; width: min(640px, 95vw);
+    max-height: 90vh; overflow-y: auto;
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(12px); } to { opacity: 1; transform: none; } }
+  .modal-title { font-size: 1.1rem; font-weight: 600; color: var(--text); display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+  .modal-title-text { flex: 1; }
+  .modal-title-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .modal-actions { display: none; }
+  /* DIARY FILTER TABS */
+  .diary-filter-tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; }
+  .diary-filter-tab {
+    background: none; border: 1px solid var(--border2); border-radius: 20px;
+    padding: 7px 20px; cursor: pointer; font-family: var(--font); font-weight: 700;
+    font-size: 0.83rem; color: var(--text3); transition: all 0.18s;
+  }
+  .diary-filter-tab:hover { color: var(--text2); border-color: var(--border); }
+  .diary-filter-tab.active { background: var(--text); color: #111; border-color: var(--text); }
+  /* CATEGORY TABS */
+  .cat-tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border2); }
+  .cat-tab {
+    background: none; border: none; padding: 10px 20px; cursor: pointer;
+    font-family: var(--font); font-weight: 700; font-size: 0.88rem;
+    color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+  .cat-tab:hover { color: var(--text2); }
+  .cat-tab.active { color: var(--text); border-bottom-color: var(--text); }
+  .cat-panel { animation: fadeIn 0.2s ease; }
+  label.field-label { display: block; font-size: 0.78rem; color: var(--text3); margin-bottom: 6px; letter-spacing: 0.05em; }
+  input[type="text"], input[type="date"], input[type="number"], textarea, select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-family: var(--font);
+    font-weight: 700; font-size: 0.88rem; padding: 10px 14px; outline: none; transition: border-color 0.2s;
+    margin-bottom: 1rem;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 0.5rem; }
+  .btn-cancel {
+    background: none; border: 1px solid var(--border2); color: var(--text2);
+    padding: 8px 18px; border-radius: 6px; cursor: pointer; font-family: 'Inter', var(--font); font-weight: 600; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; transition: all 0.18s;
+  }
+  .btn-cancel:hover { background: var(--surface2); }
+  .upload-zone {
+    border: 1.5px dashed var(--border); border-radius: var(--radius-sm);
+    padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s;
+    margin-bottom: 1rem; color: var(--text3); font-size: 0.85rem;
+  }
+  .upload-zone:hover { border-color: rgba(255,255,255,0.4); color: var(--text); background: var(--surface2); }
+  .upload-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+  .preview-item {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); overflow: hidden; display: flex; flex-direction: column;
+  }
+  .preview-thumb-wrap { position: relative; }
+  .preview-thumb { width: 100%; height: 120px; object-fit: cover; display: block; }
+  .preview-remove {
+    position: absolute; top: 5px; right: 5px; width: 20px; height: 20px;
+    background: rgba(0,0,0,0.65); border: none; border-radius: 50%; color: white;
+    font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .preview-remove:hover { background: var(--accent4); }
+  .preview-type-badge {
+    position: absolute; top: 5px; left: 5px;
+    background: rgba(0,0,0,0.6); border-radius: 4px;
+    padding: 1px 6px; font-size: 0.62rem; color: white;
+  }
+  .preview-memo { padding: 6px 8px; }
+  .preview-memo input {
+    width: 100%; background: var(--surface3); border: 1px solid var(--border2);
+    border-radius: 5px; color: var(--text); font-family: var(--font);
+    font-weight: 700; font-size: 0.75rem; padding: 5px 8px; outline: none; margin: 0;
+    transition: border-color 0.15s;
+  }
+  .preview-memo input:focus { border-color: var(--accent); }
+  .preview-memo input::placeholder { color: var(--text3); }
+  .workout-tags { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .tag-pill {
+    padding: 5px 12px; border-radius: 5px; font-size: 0.75rem; cursor: pointer;
+    border: 1px solid var(--border2); color: var(--text2); transition: all 0.15s;
+    background: none; font-family: var(--font); font-weight: 700;
+  }
+  .tag-pill:hover, .tag-pill.selected { background: var(--text); border-color: var(--text); color: #111; }
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 1.25rem; text-align: center; }
+  .stat-val { font-size: 2rem; font-weight: 700; color: var(--text); font-family: var(--font); }
+  .stat-label { font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
+  /* COLLAPSIBLE */
+  .diary-body { display: none; }
+  .diary-body.open { display: block; }
+  .chevron { transition: transform 0.2s; color: var(--text3); font-size: 0.9rem; }
+  .chevron.open { transform: rotate(180deg); }
+  .intensity-bar { display: flex; gap: 3px; align-items: center; }
+  .intensity-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--surface3); }
+  .intensity-dot.on { background: var(--text2); }
+  /* LIGHTBOX */
+  #lightbox {
+    display: none; position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.92); align-items: center; justify-content: center; cursor: pointer;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img, #lightbox video { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+  #lightbox .lb-caption { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); color: white; font-size: 0.88rem; background: rgba(0,0,0,0.6); padding: 6px 18px; border-radius: 20px; }
+  /* MAIN PAGE */
+  .main-page { min-height: 100vh; background: var(--bg); }
+  .main-hero {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 2.5rem 3rem; border-bottom: 1px solid var(--border2); flex-wrap: wrap; gap: 1rem;
+  }
+  .main-hero-title { font-family: 'Inter', sans-serif; font-size: 2.4rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); margin-bottom: 6px; }
+  .main-hero-sub { font-size: 0.88rem; color: var(--text3); }
+  .main-enter-btn {
+    background: var(--text); color: #111; border: none; padding: 12px 32px;
+    border-radius: 30px; cursor: pointer; font-family: var(--font); font-weight: 700;
+    font-size: 1rem; transition: all 0.2s;
+  }
+  .main-enter-btn:hover { background: var(--text2); transform: translateY(-1px); }
+  .main-nav-btn {
+    background: var(--surface2); color: var(--text2); border: 1px solid var(--border2);
+    padding: 9px 20px; border-radius: 6px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.75rem;
+    letter-spacing: 0.08em; text-transform: uppercase; transition: all 0.18s;
+  }
+  .main-nav-btn:hover { background: var(--surface3); border-color: var(--border); color: var(--text); }
+  .main-body { padding: 2rem 3rem; max-width: 1100px; margin: 0 auto; width: 100%; }
+  @media (max-width: 700px) { .main-hero { padding: 1.5rem; } .main-body { padding: 1.5rem; } }
+  .ib-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+  .ib-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.25rem; margin-bottom: 1.25rem; }
+  @media (max-width: 700px) { .ib-grid-2, .ib-grid-3 { grid-template-columns: 1fr; } }
+  .ib-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 1.5rem; }
+  .ib-card-title { font-size: 0.7rem; color: var(--text3); letter-spacing: 0.08em; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; }
+  .ib-score-val { font-size: 4rem; font-weight: 700; color: var(--text); line-height: 1; }
+  .ib-score-sub { font-size: 0.85rem; color: var(--text3); margin-top: 4px; }
+  .ib-bar { height: 6px; background: var(--surface3); border-radius: 20px; overflow: hidden; margin-top: 0.75rem; }
+  .ib-bar-fill { height: 100%; background: var(--text); border-radius: 20px; }
+  .ib-stat { margin-bottom: 0.9rem; }
+  .ib-stat:last-child { margin-bottom: 0; }
+  .ib-stat-label { font-size: 0.75rem; color: var(--text3); margin-bottom: 3px; }
+  .ib-stat-row { display: flex; align-items: baseline; gap: 6px; }
+  .ib-stat-val { font-size: 1.35rem; font-weight: 700; color: var(--text); }
+  .ib-stat-unit { font-size: 0.75rem; color: var(--text3); }
+  .ib-stat-range { font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
+  .ib-stat-bar { height: 4px; background: var(--surface3); border-radius: 10px; overflow: hidden; margin-top: 5px; }
+  .ib-stat-bar-fill { height: 100%; background: var(--text2); border-radius: 10px; }
+  .ib-adj-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border2); font-size: 0.85rem; }
+  .ib-adj-row:last-child { border-bottom: none; }
+  .ib-adj-label { color: var(--text2); }
+  .ib-adj-val { font-weight: 700; color: var(--text); }
+  .ib-hist-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border2); }
+  .ib-hist-item:last-child { border-bottom: none; }
+  .ib-hist-date { font-size: 0.72rem; color: var(--text3); width: 72px; flex-shrink: 0; }
+  .ib-hist-vals { display: flex; gap: 12px; font-size: 0.8rem; }
+  .ib-hist-chip { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .ib-hist-chip-label { font-size: 0.62rem; color: var(--text3); }
+  .ib-hist-chip-val { font-weight: 700; color: var(--text2); }
+  .ib-upload-zone {
+    border: 1.5px dashed var(--border); border-radius: var(--radius-sm);
+    padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; color: var(--text3); font-size: 0.88rem;
+  }
+  .ib-upload-zone:hover { border-color: rgba(255,255,255,0.4); color: var(--text); background: var(--surface2); }
+  .main-section-hd { font-family: 'Inter', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text3); display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .edit-inbody-btn {
+    background: none; border: 1px solid var(--border2); color: var(--text2);
+    padding: 6px 16px; border-radius: 20px; cursor: pointer;
+    font-family: var(--font); font-weight: 700; font-size: 0.78rem; transition: all 0.2s;
+  }
+  .edit-inbody-btn:hover { background: var(--surface2); color: var(--text); }
+  /* INBODY EDIT MODAL */
+  .ib-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+  /* PASSWORD LOCK */
+  .lock-btn {
+    background: none; border: 1px solid var(--border2); color: var(--text3);
+    padding: 5px 14px; border-radius: 6px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.72rem;
+    letter-spacing: 0.06em; text-transform: uppercase; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .lock-btn:hover { background: var(--surface2); color: var(--text2); border-color: var(--border); }
+  .lock-btn.unlocked { color: var(--text); border-color: var(--border); }
+  .pw-modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.88); align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  .pw-modal-overlay.open { display: flex; }
+  .pw-modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 18px; padding: 2.5rem 2rem; width: min(360px, 92vw); text-align: center;
+    animation: modalIn 0.2s ease;
+  }
+  .pw-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .pw-sub { font-size: 0.82rem; color: var(--text3); margin-bottom: 1.5rem; }
+  .pw-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-family: var(--font);
+    font-weight: 700; font-size: 1rem; padding: 12px 16px; outline: none;
+    text-align: center; letter-spacing: 0.2em; margin-bottom: 1rem;
+    transition: border-color 0.2s;
+  }
+  .pw-input:focus { border-color: rgba(255,255,255,0.4); }
+  .pw-error { font-size: 0.8rem; color: #ff6b6b; margin-bottom: 0.75rem; min-height: 1.2em; }
+  .pw-actions { display: flex; gap: 10px; justify-content: center; }
+</style>
+</head>
+<body>
+
+<header id="appHeader" style="display:none;">
+  <div class="logo" style="cursor:pointer;" onclick="showMain()">REPSYNC</div>
+  <nav>
+    <button class="active" onclick="showSection('goals',this)">목표</button>
+    <button onclick="showSection('calendar',this)">달력</button>
+    <button onclick="showSection('plans',this)">계획</button>
+    <button onclick="showSection('diary',this)">일기</button>
+  </nav>
+  <button class="lock-btn" id="headerLockBtn" onclick="toggleLock()">수정 잠금</button>
+</header>
+
+<!-- ===== MAIN PAGE ===== -->
+<div id="mainPage" class="main-page">
+  <div class="main-hero">
+    <div>
+      <div class="main-hero-title">REPSYNC</div>
+      <div class="main-hero-sub" id="mainHeroSub">오늘도 기록해요</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px;">
+      <button class="lock-btn" id="mainLockBtn" onclick="toggleLock()">수정 잠금</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="main-nav-btn" onclick="enterSection('goals')">목표</button>
+        <button class="main-nav-btn" onclick="enterSection('calendar')">달력</button>
+        <button class="main-nav-btn" onclick="enterSection('plans')">계획</button>
+        <button class="main-nav-btn" onclick="enterSection('diary')">일기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-body">
+    <div class="main-section-hd">
+      인바디 요약
+      <button class="edit-inbody-btn" onclick="requireUnlock(openInbodyModal)">수정</button>
+    </div>
+
+    <!-- 점수 + 기본 체성분 -->
+    <div class="ib-grid-2" id="ibTopGrid">
+      <!-- 인바디 점수 -->
+      <div class="ib-card">
+        <div class="ib-card-title">인바디 점수</div>
+        <div class="ib-score-val" id="ibScore">—</div>
+        <div class="ib-score-sub" id="ibScoreSub">점 / 100점</div>
+        <div class="ib-bar"><div class="ib-bar-fill" id="ibScoreBar" style="width:0%"></div></div>
+      </div>
+      <!-- 체성분 -->
+      <div class="ib-card">
+        <div class="ib-card-title">체성분 분석</div>
+        <div class="ib-stat">
+          <div class="ib-stat-label">체중</div>
+          <div class="ib-stat-row"><span class="ib-stat-val" id="ibWeight">—</span><span class="ib-stat-unit">kg</span></div>
+          <div class="ib-stat-range" id="ibWeightRange"></div>
+        </div>
+        <div class="ib-stat">
+          <div class="ib-stat-label">골격근량</div>
+          <div class="ib-stat-row"><span class="ib-stat-val" id="ibSMM">—</span><span class="ib-stat-unit">kg</span></div>
+          <div class="ib-stat-range" id="ibSMMRange"></div>
+        </div>
+        <div class="ib-stat">
+          <div class="ib-stat-label">체지방량</div>
+          <div class="ib-stat-row"><span class="ib-stat-val" id="ibBFM">—</span><span class="ib-stat-unit">kg</span></div>
+          <div class="ib-stat-range" id="ibBFMRange"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BMI + 체지방률 + 내장지방 -->
+    <div class="ib-grid-3" id="ibMidGrid">
+      <div class="ib-card">
+        <div class="ib-card-title">BMI</div>
+        <div class="ib-stat">
+          <div class="ib-stat-row"><span class="ib-stat-val" id="ibBMI">—</span><span class="ib-stat-unit">kg/m²</span></div>
+          <div class="ib-stat-range" id="ibBMIRange"></div>
+          <div class="ib-stat-bar"><div class="ib-stat-bar-fill" id="ibBMIBar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="ib-card">
+        <div class="ib-card-title">체지방률</div>
+        <div class="ib-stat">
+          <div class="ib-stat-row"><span class="ib-stat-val" id="ibPBF">—</span><span class="ib-stat-unit">%</span></div>
+          <div class="ib-stat-range" id="ibPBFRange"></div>
+          <div class="ib-stat-bar"><div class="ib-stat-bar-fill" id="ibPBFBar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="ib-card">
+        <div class="ib-card-title">내장지방 레벨</div>
+        <div class="ib-stat">
+          <div class="ib-stat-row"><span class="ib-stat-val" id="ibVFL">—</span><span class="ib-stat-unit">레벨</span></div>
+          <div class="ib-stat-range">1~9: 정상, 10~14: 높음, 15+: 매우 높음</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 히스토리 -->
+    <div class="ib-card" style="margin-bottom:1.25rem;">
+      <div class="ib-card-title">측정 히스토리</div>
+      <div id="ibHistList" style="font-size:0.82rem;color:var(--text3);">히스토리가 없습니다.</div>
+    </div>
+
+    <!-- 검사일 -->
+    <div style="text-align:right;margin-top:0.5rem;font-size:0.78rem;color:var(--text3);" id="ibTestDate"></div>
+  </div>
+</div>
+
+<!-- ===== INBODY EDIT MODAL ===== -->
+<div class="modal-overlay" id="inbodyModal">
+  <div class="modal" style="width:min(700px,95vw);">
+    <div class="modal-title">
+      <span class="modal-title-text">인바디 수정</span>
+      <div class="modal-title-actions">
+        <button class="btn-cancel" onclick="closeModal('inbodyModal')">취소</button>
+        <button class="btn-primary" onclick="saveInbody()">저장</button>
+      </div>
+    </div>
+
+    <label class="field-label">📷 인바디 결과지 이미지 업로드 (자동 인식)</label>
+    <div class="ib-upload-zone" id="ibUploadZone" onclick="document.getElementById('ibFileInput').click()">
+      클릭하거나 드래그하세요<br>
+      <span style="font-size:0.75rem;margin-top:4px;display:block;">JPG, PNG 지원 — 업로드 후 값을 직접 확인·수정하세요</span>
+    </div>
+    <input type="file" id="ibFileInput" accept="image/*" style="display:none" onchange="handleInbodyImage(event)">
+    <div id="ibImagePreview" style="margin-bottom:1rem;display:none;">
+      <img id="ibPreviewImg" style="width:100%;border-radius:var(--radius-sm);border:1px solid var(--border2);">
+    </div>
+
+    <div class="ib-modal-grid">
+      <div>
+        <label class="field-label">검사일</label>
+        <input type="date" id="ib_testDate">
+        <label class="field-label">인바디 점수</label>
+        <input type="number" id="ib_score" placeholder="예: 82">
+        <label class="field-label">체중 (kg)</label>
+        <input type="text" id="ib_weight" placeholder="예: 57.9 (47.4~64.2)">
+        <label class="field-label">골격근량 (kg)</label>
+        <input type="text" id="ib_smm" placeholder="예: 24.9 (20.4~24.6)">
+      </div>
+      <div>
+        <label class="field-label">체지방량 (kg)</label>
+        <input type="text" id="ib_bfm" placeholder="예: 12.9 (11.2~17.9)">
+        <label class="field-label">BMI (kg/m²)</label>
+        <input type="text" id="ib_bmi" placeholder="예: 21.8 (18.5~23.0)">
+        <label class="field-label">체지방률 (%)</label>
+        <input type="text" id="ib_pbf" placeholder="예: 22.2 (18.0~28.0)">
+        <label class="field-label">내장지방 레벨</label>
+        <input type="number" id="ib_vfl" placeholder="예: 4">
+      </div>
+    </div>
+    <input type="hidden" id="ib_idealW">
+    <input type="hidden" id="ib_adjW">
+    <input type="hidden" id="ib_adjF">
+    <input type="hidden" id="ib_adjM">
+    <div class="modal-actions"></div>
+  </div>
+</div>
+
+<!-- ===== GOALS SECTION ===== -->
+<section id="goals" class="section">
+  <div class="section-title">전체 목표</div>
+
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">총 운동 일수</div></div>
+    <div class="stat-card"><div class="stat-val" id="statStreak">0</div><div class="stat-label">현재 연속일</div></div>
+    <div class="stat-card"><div class="stat-val" id="statThisMonth">0</div><div class="stat-label">이번달 운동</div></div>
+    <div class="stat-card"><div class="stat-val" id="statGoals">0</div><div class="stat-label">목표 달성</div></div>
+  </div>
+
+  <div class="goal-grid" id="goalGrid"></div>
+  <button class="btn-add" onclick="requireUnlock(openGoalModal)">+ 새 목표 추가</button>
+</section>
+
+<!-- ===== CALENDAR SECTION ===== -->
+<section id="calendar" class="section">
+  <div class="section-title">월간 달력</div>
+  <div class="card">
+    <div class="calendar-header">
+      <button class="calendar-nav" onclick="changeMonth(-1)">← 이전</button>
+      <div class="calendar-month" id="calMonthLabel"></div>
+      <button class="calendar-nav" onclick="changeMonth(1)">다음 →</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+  <div id="calDayDetail" style="display:none;">
+    <div class="card" id="calDayCard">
+      <div class="card-header">
+        <div class="card-title" id="calDayTitle">날짜 선택</div>
+        <button class="btn-primary" onclick="requireUnlock(()=>openDiaryModal(selectedCalDate))" id="calAddBtn">+ 일기 추가</button>
+      </div>
+      <div id="calDayEntries"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PLANS SECTION ===== -->
+<section id="plans" class="section">
+  <div class="section-title">운동 계획</div>
+
+  <!-- 월 네비게이션 -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <button class="calendar-nav" onclick="changePlanMonth(-1)">← 이전</button>
+    <div id="planMonthNav" style="font-size:1.1rem;font-weight:700;"></div>
+    <button class="calendar-nav" onclick="changePlanMonth(1)">다음 →</button>
+  </div>
+
+  <!-- 월간 계획 -->
+  <div class="plan-card" style="margin-bottom:1rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <div>
+        <div class="plan-label">월간 계획</div>
+        <div class="plan-period" id="planMonthLabel"></div>
+      </div>
+      <button class="btn-primary" style="font-size:0.78rem;padding:6px 14px;" onclick="requireUnlock(()=>openPlanModal('month'))">+ 추가</button>
+    </div>
+    <ul class="plan-list" id="monthPlanList"></ul>
+  </div>
+
+  <!-- 주간 계획 (해당 월의 주차 목록) -->
+  <div id="weekPlanContainer"></div>
+
+</section>
+
+<!-- ===== DIARY SECTION ===== -->
+<section id="diary" class="section">
+  <div class="diary-toolbar">
+    <div class="section-title" style="margin:0;">운동 일기</div>
+    <button class="btn-primary" onclick="requireUnlock(openDiaryModal)">+ 새 기록</button>
+  </div>
+  <div class="diary-filter-tabs">
+    <button class="diary-filter-tab active" onclick="setDiaryFilter('all',this)">전체</button>
+    <button class="diary-filter-tab" onclick="setDiaryFilter('month',this)">이번 달</button>
+    <button class="diary-filter-tab" onclick="setDiaryFilter('week',this)">이번 주</button>
+  </div>
+  <div id="diaryList"></div>
+  <div id="emptyDiary" style="text-align:center; padding:4rem 2rem; color:var(--text3);">
+    <div style="font-size:3rem; margin-bottom:1rem;"></div>
+    <div>아직 운동 일기가 없어요.<br>첫 번째 기록을 추가해 보세요!</div>
+  </div>
+</section>
+
+<!-- ===== GOAL MODAL ===== -->
+<div class="modal-overlay" id="goalModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span class="modal-title-text">목표 추가</span>
+      <div class="modal-title-actions">
+        <button class="btn-cancel" onclick="closeModal('goalModal')">취소</button>
+        <button class="btn-cancel" id="goalDeleteBtn" style="display:none;color:#f5f5f5;border-color:rgba(255,255,255,0.25);" onclick="deleteGoal()">삭제</button>
+        <button class="btn-primary" id="goalSaveBtn" onclick="saveGoal()">저장</button>
+      </div>
+    </div>
+    <label class="field-label">목표 제목</label>
+    <input type="text" id="goalTitle" placeholder="예: 체중 10kg 감량">
+    <label class="field-label">목표 설명</label>
+    <input type="text" id="goalDesc" placeholder="예: 6개월 안에 70kg 달성">
+    <div class="field-row">
+      <div>
+        <label class="field-label">현재값 (선택)</label>
+        <input type="text" id="goalCurrent" placeholder="예: 75kg, 10회">
+      </div>
+      <div>
+        <label class="field-label">목표값 (선택)</label>
+        <input type="text" id="goalTarget" placeholder="예: 65kg, 100회">
+      </div>
+    </div>
+    <label class="field-label">카테고리</label>
+    <select id="goalCategory">
+      <option value="체중">체중관리</option>
+      <option value="근력">근력향상</option>
+      <option value="유산소">유산소</option>
+      <option value="유연성">유연성</option>
+      <option value="습관">운동 습관</option>
+      <option value="기타">기타</option>
+    </select>
+    <div class="modal-actions"></div>
+  </div>
+</div>
+
+<!-- ===== PLAN MODAL ===== -->
+<div class="modal-overlay" id="planModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span class="modal-title-text" id="planModalTitle">계획 추가</span>
+      <div class="modal-title-actions">
+        <button class="btn-cancel" onclick="closeModal('planModal')">취소</button>
+        <button class="btn-primary" onclick="savePlan()">저장</button>
+      </div>
+    </div>
+    <div id="planModalDateRow" style="display:none;margin-bottom:0.5rem;">
+      <label class="field-label" id="planModalDateLabel">날짜</label>
+      <input type="date" id="planDateInput">
+    </div>
+    <label class="field-label">계획 내용</label>
+    <input type="text" id="planText" placeholder="예: 스쿼트 100회, 5km 달리기">
+    <div class="modal-actions"></div>
+  </div>
+</div>
+
+<!-- ===== DIARY MODAL ===== -->
+<div class="modal-overlay" id="diaryModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span class="modal-title-text" id="diaryModalTitle">일기 작성</span>
+      <div class="modal-title-actions">
+        <button class="btn-cancel" onclick="closeModal('diaryModal')">취소</button>
+        <button class="btn-cancel" id="diaryDeleteBtn" style="display:none;color:#f5f5f5;border-color:rgba(255,255,255,0.25);" onclick="deleteDiaryFromModal()">삭제</button>
+        <button class="btn-primary" id="diarySaveBtn" onclick="saveDiary()">저장</button>
+      </div>
+    </div>
+
+    <div class="field-row" style="margin-bottom:1rem;">
+      <div>
+        <label class="field-label">날짜</label>
+        <input type="date" id="diaryDate" style="margin-bottom:0;">
+      </div>
+      <div>
+        <label class="field-label">제목</label>
+        <input type="text" id="diaryTitle" placeholder="오늘의 기록 제목" style="margin-bottom:0;">
+      </div>
+    </div>
+
+    <!-- CATEGORY TABS -->
+    <div class="cat-tabs">
+      <button class="cat-tab active" data-cat="workout" onclick="switchCat(this,'workout')">운동</button>
+      <button class="cat-tab" data-cat="diet" onclick="switchCat(this,'diet')">식단</button>
+      <button class="cat-tab" data-cat="etc" onclick="switchCat(this,'etc')">기타</button>
+    </div>
+
+    <!-- WORKOUT TAB -->
+    <div class="cat-panel" id="panel-workout">
+      <label class="field-label">운동 종류</label>
+      <input type="text" id="workoutType" placeholder="예: 웨이트, 달리기, 수영">
+      <label class="field-label">운동 강도</label>
+      <div id="intensityPills" style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
+        <button class="tag-pill" data-val="1" onclick="setIntensity(this,1)">가벼움</button>
+        <button class="tag-pill" data-val="2" onclick="setIntensity(this,2)">보통</button>
+        <button class="tag-pill" data-val="3" onclick="setIntensity(this,3)">힘듦</button>
+        <button class="tag-pill" data-val="4" onclick="setIntensity(this,4)">극한</button>
+      </div>
+      <label class="field-label">운동 시간 (분)</label>
+      <input type="number" id="diaryDuration" placeholder="예: 60">
+      <label class="field-label">메모</label>
+      <textarea id="contentWorkout" placeholder="오늘 운동은 어땠나요?"></textarea>
+      <label class="field-label">미디어</label>
+      <div class="upload-zone" onclick="triggerUpload('workout')">클릭하거나 드래그하세요<br><span style="font-size:0.72rem;margin-top:4px;display:block;">이미지(JPG,PNG,GIF) 및 영상(MP4,MOV)</span></div>
+      <input type="file" id="fileWorkout" multiple accept="image/*,video/*" style="display:none" onchange="handleFiles(event,'workout')">
+      <div class="upload-preview" id="previewWorkout"></div>
+    </div>
+
+    <!-- DIET TAB -->
+    <div class="cat-panel" id="panel-diet" style="display:none;">
+      <label class="field-label">식단 내용</label>
+      <input type="text" id="dietSummary" placeholder="예: 닭가슴살, 고구마, 샐러드">
+      <label class="field-label">칼로리 (kcal)</label>
+      <input type="number" id="dietCalories" placeholder="예: 1800">
+      <label class="field-label">메모</label>
+      <textarea id="contentDiet" placeholder="오늘 식단은 어땠나요?"></textarea>
+      <label class="field-label">미디어</label>
+      <div class="upload-zone" onclick="triggerUpload('diet')">클릭하거나 드래그하세요<br><span style="font-size:0.72rem;margin-top:4px;display:block;">이미지(JPG,PNG,GIF) 및 영상(MP4,MOV)</span></div>
+      <input type="file" id="fileDiet" multiple accept="image/*,video/*" style="display:none" onchange="handleFiles(event,'diet')">
+      <div class="upload-preview" id="previewDiet"></div>
+    </div>
+
+    <!-- ETC TAB -->
+    <div class="cat-panel" id="panel-etc" style="display:none;">
+      <label class="field-label">메모</label>
+      <textarea id="contentEtc" placeholder="자유롭게 기록해 보세요."></textarea>
+      <label class="field-label">미디어</label>
+      <div class="upload-zone" onclick="triggerUpload('etc')">클릭하거나 드래그하세요<br><span style="font-size:0.72rem;margin-top:4px;display:block;">이미지(JPG,PNG,GIF) 및 영상(MP4,MOV)</span></div>
+      <input type="file" id="fileEtc" multiple accept="image/*,video/*" style="display:none" onchange="handleFiles(event,'etc')">
+      <div class="upload-preview" id="previewEtc"></div>
+    </div>
+
+    <div class="modal-actions"></div>
+  </div>
+</div>
+
+<!-- ===== PASSWORD MODAL ===== -->
+<div class="pw-modal-overlay" id="pwModal">
+  <div class="pw-modal">
+    <div class="pw-title" id="pwModalTitle">비밀번호 입력</div>
+    <div class="pw-sub" id="pwModalSub">수정 모드를 활성화하려면 비밀번호를 입력하세요</div>
+    <input type="password" class="pw-input" id="pwInput" placeholder="••••" maxlength="20"
+      onkeydown="if(event.key==='Enter')confirmPw()">
+    <div class="pw-error" id="pwError"></div>
+    <div class="pw-actions">
+      <button class="btn-cancel" onclick="closePwModal()">취소</button>
+      <button class="btn-primary" onclick="confirmPw()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <div id="lbContent"></div>
+  <div class="lb-caption" id="lbCaption"></div>
+</div>
+
+<script type="module">
+// ======= FIREBASE =======
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, get, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBc-VYnias5AAimgRH84f9IegSbp03hWig",
+  authDomain: "eelshy-2b572.firebaseapp.com",
+  databaseURL: "https://eelshy-2b572-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "eelshy-2b572",
+  storageBucket: "eelshy-2b572.firebasestorage.app",
+  messagingSenderId: "1092899559325",
+  appId: "1:1092899559325:web:ddf11249ea7a97713e8174"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const dbRef = ref(db, 'repsync');
+
+// Firebase에서 실시간으로 데이터 수신
+onValue(dbRef, (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    state = data;
+    if (!state.goals) state.goals = [];
+    if (!state.plans) state.plans = { month: {}, week: {}, day: {} };
+    if (!state.diary) state.diary = [];
+    if (!state.inbody) state.inbody = null;
+    if (!state.inbodyHistory) state.inbodyHistory = [];
+    // 현재 열린 탭 새로고침
+    const activeSection = document.querySelector('.section.active');
+    if (activeSection) {
+      const id = activeSection.id;
+      if (id === 'goals') renderGoals();
+      if (id === 'calendar') renderCalendar();
+      if (id === 'plans') renderPlans();
+      if (id === 'diary') renderDiary();
+    }
+    renderInbodyDashboard();
+  }
+});
+
+// 전역에 fbSave 등록
+window.fbSave = function() {
+  set(dbRef, state).catch(err => console.error('Firebase save error:', err));
+};
+</script>
+
+<script>
+// ======= STATE =======
+let state = JSON.parse(localStorage.getItem('workoutJournal') || '{}');
+if (!state.goals) state.goals = [];
+if (!state.plans) state.plans = { month: {}, week: {}, day: {} };
+if (!state.diary) state.diary = [];
+if (!state.inbody) state.inbody = null;
+if (!state.inbodyHistory) state.inbodyHistory = [];
+
+const today = new Date();
+let calYear = today.getFullYear();
+let calMonth = today.getMonth();
+let selectedCalDate = null;
+
+function save() {
+  localStorage.setItem('workoutJournal', JSON.stringify(state));
+  if (window.fbSave) window.fbSave();
+}
+
+// ======= PASSWORD LOCK =======
+const EDIT_PW = '1234'; // ← 여기서 비밀번호 변경
+let isUnlocked = false;
+let pwPendingAction = null;
+
+function toggleLock() {
+  if (isUnlocked) {
+    // 잠그기
+    isUnlocked = false;
+    updateLockUI();
+  } else {
+    // 잠금 해제 시도
+    openPwModal(null);
+  }
+}
+
+function requireUnlock(action) {
+  if (isUnlocked) { action(); return; }
+  openPwModal(action);
+}
+
+function openPwModal(action) {
+  pwPendingAction = action;
+  document.getElementById('pwInput').value = '';
+  document.getElementById('pwError').textContent = '';
+  document.getElementById('pwModalSub').textContent = action
+    ? '이 기능을 사용하려면 비밀번호를 입력하세요'
+    : '수정 모드를 활성화하려면 비밀번호를 입력하세요';
+  document.getElementById('pwModal').classList.add('open');
+  setTimeout(() => document.getElementById('pwInput').focus(), 100);
+}
+
+function closePwModal() {
+  document.getElementById('pwModal').classList.remove('open');
+  pwPendingAction = null;
+}
+
+function confirmPw() {
+  const val = document.getElementById('pwInput').value;
+  if (val === EDIT_PW) {
+    document.getElementById('pwModal').classList.remove('open');
+    if (pwPendingAction) {
+      pwPendingAction();
+      pwPendingAction = null;
+    } else {
+      isUnlocked = true;
+      updateLockUI();
+    }
+  } else {
+    document.getElementById('pwError').textContent = '비밀번호가 올바르지 않습니다';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+function updateLockUI() {
+  const label = isUnlocked ? '수정 중' : '수정 잠금';
+  ['mainLockBtn','headerLockBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = label; el.classList.toggle('unlocked', isUnlocked); }
+  });
+}
+
+// ======= MAIN PAGE =======
+function showMain() {
+  document.getElementById('mainPage').style.display = 'block';
+  document.getElementById('appHeader').style.display = 'none';
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  renderInbodyDashboard();
+}
+
+function enterApp() {
+  document.getElementById('mainPage').style.display = 'none';
+  document.getElementById('appHeader').style.display = 'flex';
+  document.querySelectorAll('nav button').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.getElementById('goals').classList.add('active');
+  renderGoals();
+}
+
+function enterSection(id) {
+  document.getElementById('mainPage').style.display = 'none';
+  document.getElementById('appHeader').style.display = 'flex';
+  const sectionMap = { goals: 0, calendar: 1, plans: 2, diary: 3 };
+  document.querySelectorAll('nav button').forEach((b, i) => b.classList.toggle('active', i === sectionMap[id]));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'goals') renderGoals();
+  if (id === 'calendar') renderCalendar();
+  if (id === 'plans') renderPlans();
+  if (id === 'diary') renderDiary();
+}
+
+function parseField(str) {
+  if (!str) return { val: null, range: '' };
+  const m = str.match(/([\d.]+)\s*\(([^)]+)\)/);
+  if (m) return { val: parseFloat(m[1]), range: m[2].trim() };
+  return { val: parseFloat(str) || null, range: '' };
+}
+
+function renderInbodyDashboard() {
+  const d = state.inbody;
+  if (!d) {
+    document.getElementById('mainHeroSub').textContent = '인바디 데이터를 입력해 보세요';
+    return;
+  }
+  document.getElementById('mainHeroSub').textContent = d.testDate ? `최근 측정: ${d.testDate}` : '인바디 요약';
+
+  // 점수
+  const score = d.score || 0;
+  document.getElementById('ibScore').textContent = score || '—';
+  document.getElementById('ibScoreBar').style.width = score ? Math.min(score,100) + '%' : '0%';
+
+  // 체성분
+  const setStatField = (id, rangeId, str) => {
+    const p = parseField(str);
+    document.getElementById(id).textContent = p.val !== null ? p.val : '—';
+    if (rangeId) document.getElementById(rangeId).textContent = p.range ? `표준: ${p.range}` : '';
+  };
+  setStatField('ibWeight','ibWeightRange', d.weight);
+  setStatField('ibSMM','ibSMMRange', d.smm);
+  setStatField('ibBFM','ibBFMRange', d.bfm);
+  setStatField('ibBMI','ibBMIRange', d.bmi);
+  setStatField('ibPBF','ibPBFRange', d.pbf);
+  document.getElementById('ibVFL').textContent = d.vfl || '—';
+
+  // BMI 바 (18.5~30 기준, 최대값 35)
+  const bmiVal = parseField(d.bmi).val;
+  document.getElementById('ibBMIBar').style.width = bmiVal ? Math.min((bmiVal/35)*100, 100) + '%' : '0%';
+  const pbfVal = parseField(d.pbf).val;
+  document.getElementById('ibPBFBar').style.width = pbfVal ? Math.min((pbfVal/50)*100, 100) + '%' : '0%';
+
+  document.getElementById('ibTestDate').textContent = d.testDate ? `측정일: ${d.testDate}` : '';
+
+  // 히스토리
+  const hist = (state.inbodyHistory || []).slice().sort((a,b) => (b.testDate||'').localeCompare(a.testDate||'')).slice(0, 8);
+  const histEl = document.getElementById('ibHistList');
+  if (hist.length === 0) {
+    histEl.innerHTML = '<span style="color:var(--text3);font-size:0.82rem;">히스토리가 없습니다.</span>';
+  } else {
+    histEl.innerHTML = hist.map(h => {
+      const w = parseField(h.weight).val;
+      const s = parseField(h.smm).val;
+      const f = parseField(h.bfm).val;
+      return `<div class="ib-hist-item">
+        <div class="ib-hist-date">${h.testDate||'—'}</div>
+        <div class="ib-hist-vals">
+          <div class="ib-hist-chip"><div class="ib-hist-chip-label">체중</div><div class="ib-hist-chip-val">${w||'—'}</div></div>
+          <div class="ib-hist-chip"><div class="ib-hist-chip-label">근육</div><div class="ib-hist-chip-val">${s||'—'}</div></div>
+          <div class="ib-hist-chip"><div class="ib-hist-chip-label">지방</div><div class="ib-hist-chip-val">${f||'—'}</div></div>
+          <div class="ib-hist-chip"><div class="ib-hist-chip-label">점수</div><div class="ib-hist-chip-val">${h.score||'—'}</div></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function openInbodyModal() {
+  const d = state.inbody || {};
+  document.getElementById('ib_testDate').value = d.testDate || '';
+  document.getElementById('ib_score').value = d.score || '';
+  document.getElementById('ib_weight').value = d.weight || '';
+  document.getElementById('ib_smm').value = d.smm || '';
+  document.getElementById('ib_bfm').value = d.bfm || '';
+  document.getElementById('ib_bmi').value = d.bmi || '';
+  document.getElementById('ib_pbf').value = d.pbf || '';
+  document.getElementById('ib_vfl').value = d.vfl || '';
+  document.getElementById('ib_idealW').value = d.idealW || '';
+  document.getElementById('ib_adjW').value = d.adjW || '';
+  document.getElementById('ib_adjF').value = d.adjF || '';
+  document.getElementById('ib_adjM').value = d.adjM || '';
+  document.getElementById('ibImagePreview').style.display = 'none';
+  document.getElementById('inbodyModal').classList.add('open');
+}
+
+function saveInbody() {
+  const prev = state.inbody;
+  const nd = {
+    testDate: document.getElementById('ib_testDate').value,
+    score: document.getElementById('ib_score').value,
+    weight: document.getElementById('ib_weight').value,
+    smm: document.getElementById('ib_smm').value,
+    bfm: document.getElementById('ib_bfm').value,
+    bmi: document.getElementById('ib_bmi').value,
+    pbf: document.getElementById('ib_pbf').value,
+    vfl: document.getElementById('ib_vfl').value,
+    idealW: document.getElementById('ib_idealW').value,
+    adjW: document.getElementById('ib_adjW').value,
+    adjF: document.getElementById('ib_adjF').value,
+    adjM: document.getElementById('ib_adjM').value,
+  };
+  // 이전 데이터가 있고 날짜가 다르면 히스토리에 추가
+  if (prev && prev.testDate && prev.testDate !== nd.testDate) {
+    if (!state.inbodyHistory) state.inbodyHistory = [];
+    const already = state.inbodyHistory.find(h => h.testDate === prev.testDate);
+    if (!already) state.inbodyHistory.push({ ...prev });
+  }
+  state.inbody = nd;
+  save(); closeModal('inbodyModal'); renderInbodyDashboard();
+}
+
+async function handleInbodyImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    document.getElementById('ibPreviewImg').src = ev.target.result;
+    document.getElementById('ibImagePreview').style.display = 'block';
+
+    const zone = document.getElementById('ibUploadZone');
+    zone.innerHTML = 'OCR 분석 중... 잠시만 기다려 주세요';
+    zone.style.pointerEvents = 'none';
+
+    try {
+      // Tesseract.js 로드
+      if (!window.Tesseract) {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js';
+          s.onload = res; s.onerror = rej;
+          document.head.appendChild(s);
+        });
+      }
+
+      const result = await Tesseract.recognize(ev.target.result, 'kor+eng', {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            zone.innerHTML = `OCR 분석 중... ${Math.round(m.progress * 100)}%`;
+          }
+        }
+      });
+
+      const text = result.data.text;
+      parseInbodyOCR(text);
+
+      zone.innerHTML = '분석 완료 — 값을 확인하고 저장하세요.<br><span style="font-size:0.72rem;">다시 업로드하려면 클릭하세요</span>';
+    } catch (err) {
+      console.error(err);
+      zone.innerHTML = '분석 실패 — 값을 직접 입력해 주세요.<br><span style="font-size:0.72rem;">다시 시도하려면 클릭하세요</span>';
+    }
+
+    zone.style.pointerEvents = '';
+    zone.onclick = () => document.getElementById('ibFileInput').click();
+  };
+  reader.readAsDataURL(file);
+}
+
+function parseInbodyOCR(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const all = lines.join(' ');
+
+  // 숫자 추출 헬퍼
+  const findAfter = (keywords, str) => {
+    for (const kw of keywords) {
+      const idx = str.indexOf(kw);
+      if (idx === -1) continue;
+      const after = str.slice(idx + kw.length, idx + kw.length + 40);
+      // "숫자 ( 숫자~숫자 )" 또는 그냥 숫자
+      const m = after.match(/([\d.]+)\s*[\(\[]\s*([\d.]+)\s*[~\-]\s*([\d.]+)/);
+      if (m) return `${m[1]} (${m[2]}~${m[3]})`;
+      const m2 = after.match(/([\d.]+)/);
+      if (m2) return m2[1];
+    }
+    return '';
+  };
+
+  const findNum = (keywords, str) => {
+    for (const kw of keywords) {
+      const idx = str.indexOf(kw);
+      if (idx === -1) continue;
+      const after = str.slice(idx + kw.length, idx + kw.length + 30);
+      const m = after.match(/([\d.]+)/);
+      if (m) return m[1];
+    }
+    return '';
+  };
+
+  // 검사일 (YYYY.MM.DD 또는 YYYY-MM-DD)
+  const dateM = all.match(/20\d{2}[.\-\/]\d{1,2}[.\-\/]\d{1,2}/);
+  if (dateM) {
+    const raw = dateM[0].replace(/\./g, '-').replace(/\//g, '-');
+    const parts = raw.split('-');
+    if (parts.length === 3) {
+      document.getElementById('ib_testDate').value =
+        `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+    }
+  }
+
+  // 인바디 점수
+  const scoreM = all.match(/(\d{2,3})\s*\/\s*100/);
+  if (scoreM) document.getElementById('ib_score').value = scoreM[1];
+
+  // 체중
+  const w = findAfter(['체중 Weight','체중\n','체중 ('], all);
+  if (w) document.getElementById('ib_weight').value = w;
+
+  // 골격근량
+  const smm = findAfter(['골격근량','Skeletal Muscle'], all);
+  if (smm) document.getElementById('ib_smm').value = smm;
+
+  // 체지방량
+  const bfm = findAfter(['체지방량','Body Fat Mass','체지방 ('], all);
+  if (bfm) document.getElementById('ib_bfm').value = bfm;
+
+  // BMI
+  const bmi = findAfter(['BMI','Body Mass'], all);
+  if (bmi) document.getElementById('ib_bmi').value = bmi;
+
+  // 체지방률
+  const pbf = findAfter(['체지방률','Percent Body Fat','체지방율'], all);
+  if (pbf) document.getElementById('ib_pbf').value = pbf;
+
+  // 내장지방 레벨
+  const vfl = findNum(['내장지방레벨','내장지방 레벨','Visceral Fat'], all);
+  if (vfl) document.getElementById('ib_vfl').value = vfl;
+
+  // 적정체중
+  const idealW = findNum(['적정체중','적정 체중'], all);
+  if (idealW) document.getElementById('ib_idealW').value = idealW;
+
+  // 체중조절
+  const adjW = findNum(['체중조절','체중 조절'], all);
+  if (adjW) document.getElementById('ib_adjW').value = adjW;
+
+  // 지방조절
+  const adjF = findNum(['지방조절','지방 조절'], all);
+  if (adjF) document.getElementById('ib_adjF').value = adjF;
+
+  // 근육조절
+  const adjM = findNum(['근육조절','근육 조절'], all);
+  if (adjM) document.getElementById('ib_adjM').value = adjM;
+}
+
+// inbody upload zone drag&drop
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('ibUploadZone');
+  if (zone) {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor='rgba(255,255,255,0.4)'; });
+    zone.addEventListener('dragleave', () => { zone.style.borderColor=''; });
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.style.borderColor='';
+      const file = e.dataTransfer.files[0];
+      if (!file || !file.type.startsWith('image')) return;
+      handleInbodyImage({ target: { files: [file], value: '' } });
+    });
+  }
+});
+
+// ======= NAV =======
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'goals') renderGoals();
+  if (id === 'calendar') renderCalendar();
+  if (id === 'plans') renderPlans();
+  if (id === 'diary') renderDiary();
+}
+
+// ======= GOALS =======
+const catColors = {
+  '체중': ['#cccccc','rgba(255,255,255,0.08)'],
+  '근력': ['#cccccc','rgba(255,255,255,0.08)'],
+  '유산소': ['#cccccc','rgba(255,255,255,0.08)'],
+  '유연성': ['#cccccc','rgba(255,255,255,0.08)'],
+  '습관': ['#cccccc','rgba(255,255,255,0.08)'],
+  '기타': ['#888888','rgba(255,255,255,0.05)'],
+};
+
+function renderGoals() {
+  const grid = document.getElementById('goalGrid');
+  grid.innerHTML = '';
+  state.goals.forEach((g, i) => {
+    const [col, bg] = catColors[g.category] || ['#a09cc0','rgba(160,156,192,0.15)'];
+    grid.innerHTML += `
+      <div class="goal-card ${g.done ? 'achieved' : ''}">
+        <button class="btn-edit" onclick="requireUnlock(()=>editGoal(${i}))"></button>
+        <div class="tag" style="background:${bg};color:${col}">${g.category}</div>
+        <div class="goal-title">${g.title}</div>
+        <div class="goal-desc">${g.desc || ''}</div>
+        ${(g.current || g.target) ? `<div style="font-size:0.8rem;color:var(--text3);margin-bottom:0.75rem;">${g.current ? '현재: ' + g.current : ''} ${g.current && g.target ? '→' : ''} ${g.target ? '목표: ' + g.target : ''}</div>` : ''}
+        <div class="goal-done-row">
+          <div class="goal-done-check ${g.done ? 'done' : ''}" onclick="requireUnlock(()=>toggleGoalDone(${i}))">${g.done ? '✓' : ''}</div>
+          <span class="goal-done-label">${g.done ? '달성 완료' : '달성 완료로 표시'}</span>
+        </div>
+      </div>`;
+  });
+  // Stats
+  const logs = state.diary;
+  document.getElementById('statTotal').textContent = logs.length;
+  let streak = 0;
+  const sortedDates = [...new Set(logs.map(l => l.date))].sort().reverse();
+  let d = new Date(today);
+  for (let i = 0; i < 365; i++) {
+    const ds = fmtDate(d);
+    if (sortedDates.includes(ds)) { streak++; d.setDate(d.getDate() - 1); }
+    else if (i === 0) { d.setDate(d.getDate() - 1); continue; }
+    else break;
+  }
+  document.getElementById('statStreak').textContent = streak;
+  const thisMonth = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('statThisMonth').textContent = logs.filter(l => l.date && l.date.startsWith(thisMonth)).length;
+  const doneCount = state.goals.filter(g => g.done).length;
+  document.getElementById('statGoals').textContent = state.goals.length ? `${doneCount}/${state.goals.length}` : '0';
+}
+
+function toggleGoalDone(i) {
+  state.goals[i].done = !state.goals[i].done;
+  save(); renderGoals();
+}
+
+function openGoalModal() {
+  document.getElementById('goalTitle').value = '';
+  document.getElementById('goalDesc').value = '';
+  document.getElementById('goalCurrent').value = '';
+  document.getElementById('goalTarget').value = '';
+  document.getElementById('goalDeleteBtn').style.display = 'none';
+  document.getElementById('goalSaveBtn').onclick = saveGoal;
+  document.getElementById('goalModal').classList.add('open');
+}
+
+function saveGoal() {
+  const title = document.getElementById('goalTitle').value.trim();
+  if (!title) return;
+  state.goals.push({
+    title,
+    desc: document.getElementById('goalDesc').value,
+    current: document.getElementById('goalCurrent').value.trim(),
+    target: document.getElementById('goalTarget').value.trim(),
+    category: document.getElementById('goalCategory').value,
+    done: false,
+  });
+  save(); closeModal('goalModal'); renderGoals();
+}
+
+function editGoal(i) {
+  const g = state.goals[i];
+  document.getElementById('goalTitle').value = g.title;
+  document.getElementById('goalDesc').value = g.desc || '';
+  document.getElementById('goalCurrent').value = g.current || '';
+  document.getElementById('goalTarget').value = g.target || '';
+  document.getElementById('goalCategory').value = g.category;
+  document.getElementById('goalModal').classList.add('open');
+  document.getElementById('goalDeleteBtn').style.display = 'inline-flex';
+  document.getElementById('goalDeleteBtn').onclick = () => deleteGoal(i);
+  const saveBtn = document.getElementById('goalSaveBtn');
+  saveBtn.onclick = () => {
+    g.title = document.getElementById('goalTitle').value.trim();
+    g.desc = document.getElementById('goalDesc').value;
+    g.current = document.getElementById('goalCurrent').value.trim();
+    g.target = document.getElementById('goalTarget').value.trim();
+    g.category = document.getElementById('goalCategory').value;
+    save(); closeModal('goalModal'); renderGoals();
+    saveBtn.onclick = saveGoal;
+    document.getElementById('goalDeleteBtn').style.display = 'none';
+  };
+}
+
+function deleteGoal(i) {
+  state.goals.splice(i, 1);
+  save(); closeModal('goalModal');
+  document.getElementById('goalDeleteBtn').style.display = 'none';
+  document.getElementById('goalSaveBtn').onclick = saveGoal;
+  renderGoals();
+}
+
+// ======= CALENDAR =======
+function fmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function renderCalendar() {
+  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('calMonthLabel').textContent = `${calYear}년 ${months[calMonth]}`;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const days = ['일','월','화','수','목','금','토'];
+  days.forEach(d => { grid.innerHTML += `<div class="cal-day-name">${d}</div>`; });
+  const first = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const prevDays = new Date(calYear, calMonth, 0).getDate();
+  const logDates = new Set(state.diary.map(l => l.date));
+  for (let i = 0; i < first; i++) {
+    grid.innerHTML += `<div class="cal-day other-month">${prevDays - first + 1 + i}</div>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === fmtDate(today);
+    const hasLog = logDates.has(dateStr);
+    const isSelected = dateStr === selectedCalDate;
+    grid.innerHTML += `<div class="cal-day ${isToday?'today':''} ${hasLog?'has-log':''} ${isSelected?'selected':''}"
+      onclick="selectCalDay('${dateStr}')">${d}</div>`;
+  }
+  if (selectedCalDate) showCalDayDetail(selectedCalDate);
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+function selectCalDay(dateStr) {
+  selectedCalDate = dateStr;
+  renderCalendar();
+  showCalDayDetail(dateStr);
+}
+
+function showCalDayDetail(dateStr) {
+  const detail = document.getElementById('calDayDetail');
+  detail.style.display = 'block';
+  const d = new Date(dateStr + 'T00:00:00');
+  const weekDays = ['일','월','화','수','목','금','토'];
+  document.getElementById('calDayTitle').textContent = `${d.getMonth()+1}월 ${d.getDate()}일 (${weekDays[d.getDay()]})`;
+  document.getElementById('calAddBtn').onclick = () => { openDiaryModal(dateStr); };
+  const entries = state.diary.filter(l => l.date === dateStr);
+  const container = document.getElementById('calDayEntries');
+  if (entries.length === 0) {
+    container.innerHTML = '<div style="color:var(--text3);font-size:0.85rem;padding:0.5rem 0;">이 날의 운동 기록이 없습니다.</div>';
+    return;
+  }
+  container.innerHTML = entries.map(e => `
+    <div style="padding:0.75rem 0; border-bottom:1px solid var(--border2);">
+      <div style="font-weight:500;margin-bottom:5px;">${e.title}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">${(e.tags||[]).map(t=>`<span class="badge badge-purple">${t}</span>`).join('')}</div>
+      ${e.content ? `<div style="font-size:0.83rem;color:var(--text2);margin-top:6px;">${e.content.slice(0,100)}${e.content.length>100?'...':''}</div>` : ''}
+    </div>`).join('');
+}
+
+// ======= PLANS =======
+// state.plans 구조: { month: { 'YYYY-MM': [...] }, week: { 'YYYY-Www': [...] }, day: { 'YYYY-MM-DD': [...] } }
+function migratePlans() {
+  if (Array.isArray(state.plans.month)) {
+    const old = state.plans;
+    const mm = fmtMonth(today);
+    const ww = fmtWeek(today);
+    const dd = fmtDate(today);
+    state.plans = { month: {}, week: {}, day: {} };
+    if (old.month && old.month.length) state.plans.month[mm] = old.month;
+    if (old.week && old.week.length) state.plans.week[ww] = old.week;
+    if (old.today && old.today.length) state.plans.day[dd] = old.today;
+    save();
+  }
+  if (!state.plans.month) state.plans.month = {};
+  if (!state.plans.week) state.plans.week = {};
+  if (!state.plans.day) state.plans.day = {};
+}
+
+let planYear = today.getFullYear();
+let planMonth = today.getMonth();
+let currentPlanType = 'month';
+let currentPlanKey = '';
+
+function fmtMonth(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function fmtWeek(d) {
+  const tmp = new Date(d);
+  const day = tmp.getDay();
+  tmp.setDate(tmp.getDate() - (day === 0 ? 6 : day - 1));
+  const y = tmp.getFullYear();
+  const start = new Date(y, 0, 1);
+  const week = Math.ceil(((tmp - start) / 86400000 + start.getDay() + 1) / 7);
+  return `${y}-W${String(week).padStart(2,'0')}`;
+}
+
+function getWeeksInMonth(year, month) {
+  const weeks = [];
+  const d = new Date(year, month, 1);
+  while (d.getMonth() === month) {
+    const day = d.getDay();
+    const mon = new Date(d); mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    const key = fmtWeek(mon);
+    if (!weeks.find(w => w.key === key)) {
+      weeks.push({ key, mon: new Date(mon), sun: new Date(sun) });
+    }
+    d.setDate(d.getDate() + 7 - (d.getDay() === 0 ? 7 : d.getDay()) + 1);
+    if (d.getDay() !== 1) d.setDate(d.getDate() - d.getDay() + 1 + 7);
+    break; // recalc properly below
+  }
+  // proper week iteration
+  weeks.length = 0;
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  let cur = new Date(first);
+  const seen = new Set();
+  while (cur <= last) {
+    const day2 = cur.getDay();
+    const mon2 = new Date(cur); mon2.setDate(cur.getDate() - (day2 === 0 ? 6 : day2 - 1));
+    const sun2 = new Date(mon2); sun2.setDate(mon2.getDate() + 6);
+    const key2 = fmtWeek(mon2);
+    if (!seen.has(key2)) {
+      seen.add(key2);
+      weeks.push({ key: key2, mon: new Date(mon2), sun: new Date(sun2) });
+    }
+    cur.setDate(cur.getDate() + 7);
+  }
+  return weeks;
+}
+
+function changePlanMonth(dir) {
+  planMonth += dir;
+  if (planMonth < 0) { planMonth = 11; planYear--; }
+  if (planMonth > 11) { planMonth = 0; planYear++; }
+  renderPlans();
+}
+
+function renderPlans() {
+  migratePlans();
+  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const isCurrentMonth = planYear === today.getFullYear() && planMonth === today.getMonth();
+  document.getElementById('planMonthNav').textContent = `${planYear}년 ${months[planMonth]}${isCurrentMonth ? ' (현재)' : ''}`;
+
+  // 월간
+  const monthKey = `${planYear}-${String(planMonth+1).padStart(2,'0')}`;
+  document.getElementById('planMonthLabel').textContent = `${planYear}년 ${months[planMonth]}`;
+  const monthList = document.getElementById('monthPlanList');
+  monthList.innerHTML = '';
+  (state.plans.month[monthKey]||[]).forEach((p, i) => {
+    monthList.innerHTML += planItemHTML('month', monthKey, i, p);
+  });
+
+  // 주간 + 일별
+  const weeks = getWeeksInMonth(planYear, planMonth);
+  const container = document.getElementById('weekPlanContainer');
+  container.innerHTML = '';
+  const todayStr = fmtDate(today);
+
+  weeks.forEach(w => {
+    const isCurrentWeek = fmtWeek(today) === w.key;
+    const weekLabel = `${w.mon.getMonth()+1}/${w.mon.getDate()} – ${w.sun.getMonth()+1}/${w.sun.getDate()}`;
+
+    // 주간 계획 카드
+    const weekPlans = state.plans.week[w.key] || [];
+    let daysHTML = '';
+    // 해당 주의 각 요일 (월~일)
+    const dayNames = ['월','화','수','목','금','토','일'];
+    for (let di = 0; di < 7; di++) {
+      const d = new Date(w.mon); d.setDate(w.mon.getDate() + di);
+      if (d.getMonth() !== planMonth) continue; // 이번 달 날짜만
+      const dk = fmtDate(d);
+      const isToday = dk === todayStr;
+      const dayPlans = state.plans.day[dk] || [];
+      daysHTML += `
+        <div style="background:var(--surface3);border-radius:var(--radius-sm);padding:0.75rem 1rem;${isToday ? 'border:2.5px solid #ffffff;' : 'border:1px solid var(--border2);'}">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+            <span style="font-size:0.8rem;font-weight:700;color:${isToday ? '#ffffff' : 'var(--text2)'};">${d.getMonth()+1}/${d.getDate()} (${dayNames[di]})</span>
+            <button onclick="requireUnlock(()=>openPlanModal('day','${dk}'))" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:1rem;font-family:var(--font);padding:0;line-height:1;">＋</button>
+          </div>
+          <ul class="plan-list" style="margin:0;">
+            ${dayPlans.map((p,i) => planItemHTML('day', dk, i, p)).join('') || `<li style="color:var(--text3);font-size:0.8rem;border:none;padding:2px 0;">계획 없음</li>`}
+          </ul>
+        </div>`;
+    }
+
+    container.innerHTML += `
+      <div class="plan-card" style="margin-bottom:1rem;${isCurrentWeek?'border-color:rgba(255,255,255,0.25);':''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+          <div>
+            <div class="plan-label">주간 계획${isCurrentWeek?' (이번 주)':''}</div>
+            <div class="plan-period">${weekLabel}</div>
+          </div>
+          <button class="btn-primary" style="font-size:0.78rem;padding:6px 14px;" onclick="requireUnlock(()=>openPlanModal('week','${w.key}'))">+ 추가</button>
+        </div>
+        <ul class="plan-list" style="margin-bottom:${daysHTML?'1rem':'0'};">
+          ${weekPlans.map((p,i) => planItemHTML('week', w.key, i, p)).join('') || `<li style="color:var(--text3);font-size:0.82rem;border:none;">주간 계획이 없습니다.</li>`}
+        </ul>
+        ${daysHTML ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">${daysHTML}</div>` : ''}
+      </div>`;
+  });
+}
+
+function planItemHTML(type, key, i, p) {
+  return `<li>
+    <div class="plan-check ${p.done?'done':''}" onclick="requireUnlock(()=>togglePlan('${type}','${key}',${i}))"></div>
+    <span class="plan-text ${p.done?'done':''}">${p.text}</span>
+    <button onclick="requireUnlock(()=>deletePlan('${type}','${key}',${i}))" style="background:none;border:none;color:var(--text3);cursor:pointer;margin-left:auto;font-size:0.75rem;padding:0 4px;">✕</button>
+  </li>`;
+}
+
+function openPlanModal(type, key) {
+  currentPlanType = type;
+  currentPlanKey = key || '';
+  const labels = { month: '월간 계획 추가', week: '주간 계획 추가', day: '일별 계획 추가' };
+  document.getElementById('planModalTitle').textContent = `📋 ${labels[type]}`;
+  document.getElementById('planText').value = '';
+  // 월간은 날짜 입력 숨김, 주간/일은 표시
+  const dateRow = document.getElementById('planModalDateRow');
+  const dateInput = document.getElementById('planDateInput');
+  if (type === 'month') {
+    dateRow.style.display = 'none';
+  } else if (type === 'week') {
+    dateRow.style.display = 'none';
+  } else {
+    dateRow.style.display = 'block';
+    document.getElementById('planModalDateLabel').textContent = '날짜';
+    dateInput.value = key || fmtDate(today);
+    dateInput.type = 'date';
+  }
+  document.getElementById('planModal').classList.add('open');
+}
+
+function savePlan() {
+  const text = document.getElementById('planText').value.trim();
+  if (!text) return;
+  let key = currentPlanKey;
+  if (currentPlanType === 'month') {
+    key = `${planYear}-${String(planMonth+1).padStart(2,'0')}`;
+  } else if (currentPlanType === 'week') {
+    const dv = document.getElementById('planDateInput').value;
+    key = dv ? fmtWeek(new Date(dv + 'T00:00:00')) : currentPlanKey;
+  } else {
+    key = document.getElementById('planDateInput').value || currentPlanKey;
+  }
+  if (!state.plans[currentPlanType][key]) state.plans[currentPlanType][key] = [];
+  state.plans[currentPlanType][key].push({ text, done: false });
+  save(); closeModal('planModal'); renderPlans();
+}
+
+function togglePlan(type, key, i) {
+  state.plans[type][key][i].done = !state.plans[type][key][i].done;
+  save(); renderPlans();
+}
+
+function deletePlan(type, key, i) {
+  state.plans[type][key].splice(i, 1);
+  save(); renderPlans();
+}
+
+// ======= DIARY =======
+const CAT_LABELS = { workout: '운동', diet: '식단', etc: '기타' };
+let mediaFiles = { workout: [], diet: [], etc: [] };
+let currentIntensity = 0;
+let currentEditDiaryIdx = null;
+let currentCat = 'workout';
+
+function switchCat(el, cat) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.cat-panel').forEach(p => p.style.display = 'none');
+  document.getElementById('panel-' + cat).style.display = 'block';
+}
+
+function triggerUpload(cat) {
+  const id = 'file' + cat.charAt(0).toUpperCase() + cat.slice(1);
+  document.getElementById(id).click();
+}
+
+function handleFiles(e, cat) {
+  Array.from(e.target.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      mediaFiles[cat].push({ type: file.type.startsWith('video') ? 'video' : 'image', data: ev.target.result, caption: '', name: file.name });
+      renderPreview(cat);
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+
+function renderPreview(cat) {
+  const key = cat.charAt(0).toUpperCase() + cat.slice(1);
+  const preview = document.getElementById('preview' + key);
+  if (!preview) return;
+  preview.innerHTML = mediaFiles[cat].map((f, i) => `
+    <div class="preview-item">
+      <div class="preview-thumb-wrap">
+        ${f.type === 'image' ? `<img class="preview-thumb" src="${f.data}">` : `<video class="preview-thumb" src="${f.data}" muted></video>`}
+        <div class="preview-type-badge">${f.type === 'image' ? '사진' : '영상'}</div>
+        <button class="preview-remove" onclick="removeMedia('${cat}',${i})">✕</button>
+      </div>
+      <div class="preview-memo">
+        <input type="text" placeholder="메모 (선택)"
+          value="${(f.caption||'').replace(/"/g,'&quot;')}"
+          oninput="mediaFiles['${cat}'][${i}].caption=this.value">
+      </div>
+    </div>`).join('');
+}
+
+function removeMedia(cat, i) {
+  mediaFiles[cat].splice(i, 1);
+  renderPreview(cat);
+}
+
+function setIntensity(el, val) {
+  currentIntensity = val;
+  document.querySelectorAll('#intensityPills .tag-pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+let diaryFilter = 'all';
+
+function setDiaryFilter(filter, el) {
+  diaryFilter = filter;
+  document.querySelectorAll('.diary-filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderDiary();
+}
+
+function getFilteredDiary() {
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const weekStart = new Date(now);
+  const day = weekStart.getDay();
+  weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1));
+  weekStart.setHours(0,0,0,0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23,59,59,999);
+
+  return state.diary.map((e, i) => ({ ...e, _idx: i })).filter(e => {
+    if (diaryFilter === 'all') return true;
+    if (diaryFilter === 'month') return e.date && e.date.startsWith(thisMonth);
+    if (diaryFilter === 'week') {
+      const d = new Date(e.date + 'T00:00:00');
+      return d >= weekStart && d <= weekEnd;
+    }
+    return true;
+  }).sort((a,b) => b.date.localeCompare(a.date));
+}
+
+function renderDiary() {
+  const list = document.getElementById('diaryList');
+  const empty = document.getElementById('emptyDiary');
+  const sorted = getFilteredDiary();
+  if (sorted.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  const intLabels = ['','😌','💦','🔥','💀'];
+  list.innerHTML = sorted.map((e, idx) => {
+    const origIdx = e._idx;
+    const d = new Date(e.date + 'T00:00:00');
+    const cats = ['workout','diet','etc'].filter(c => e.cats && e.cats[c] && (e.cats[c].memo || (e.cats[c].media||[]).length > 0 || e.cats[c].workoutType || e.cats[c].dietSummary || e.cats[c].duration));
+    return `
+    <div class="diary-entry">
+      <div class="diary-entry-header" onclick="toggleDiary(${idx})">
+        <div class="diary-date-badge">
+          <div class="dday">${String(d.getDate()).padStart(2,'0')}</div>
+          <div class="dmonth">${d.getMonth()+1}월</div>
+        </div>
+        <div class="diary-meta">
+          <div class="diary-title">${e.title || '일기'}</div>
+          <div class="diary-tags">
+            ${cats.map(c => `<span class="badge badge-purple">${CAT_LABELS[c]}</span>`).join('')}
+            ${e.cats&&e.cats.workout&&e.cats.workout.workoutType ? `<span class="badge badge-teal">${e.cats.workout.workoutType}</span>` : ''}
+            ${e.cats&&e.cats.workout&&e.cats.workout.duration ? `<span class="badge badge-teal">${e.cats.workout.duration}분</span>` : ''}
+            ${e.cats&&e.cats.workout&&e.cats.workout.intensity ? `<span class="badge badge-yellow">${intLabels[e.cats.workout.intensity]}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          <button style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:20px;padding:5px 12px;cursor:pointer;font-size:0.75rem;font-family:var(--font);font-weight:700;transition:all 0.15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'" onclick="event.stopPropagation();requireUnlock(()=>openEditDiaryModal(${origIdx}))">수정</button>
+          <span class="chevron" id="chev${idx}">▼</span>
+        </div>
+      </div>
+      <div class="diary-body" id="body${idx}">
+        ${['workout','diet','etc'].map(cat => {
+          const c = e.cats && e.cats[cat];
+          if (!c) return '';
+          const has = c.memo || (c.media||[]).length > 0 || c.workoutType || c.dietSummary || c.calories || c.duration;
+          if (!has) return '';
+          return `
+          <div style="margin-bottom:1.25rem;">
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text3);margin-bottom:0.6rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border2);">${CAT_LABELS[cat]}</div>
+            ${cat==='workout'&&(c.workoutType||c.duration||c.intensity)?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0.6rem;">${c.workoutType?`<span class="badge badge-teal">${c.workoutType}</span>`:''}${c.duration?`<span class="badge badge-teal">${c.duration}분</span>`:''}${c.intensity?`<span class="badge badge-yellow">${intLabels[c.intensity]}</span>`:''}</div>`:''}
+            ${cat==='diet'&&(c.dietSummary||c.calories)?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0.6rem;">${c.dietSummary?`<span class="badge badge-teal">${c.dietSummary}</span>`:''}${c.calories?`<span class="badge badge-purple">${c.calories} kcal</span>`:''}</div>`:''}
+            ${c.memo?`<div class="diary-note" style="margin-bottom:0.75rem;">${c.memo}</div>`:''}
+            ${(c.media||[]).length>0?`<div class="media-grid">${c.media.map(m=>`
+              <div class="media-item" onclick="openLightbox('${m.type}','${m.data}','${(m.caption||'').replace(/'/g,"\\'")}')">
+                ${m.type==='image'?`<img src="${m.data}" loading="lazy">`:`<video src="${m.data}" muted></video>`}
+                <div class="media-type-badge">${m.type==='image'?'📷':'🎥'}</div>
+                ${m.caption?`<div class="media-caption">${m.caption}</div>`:''}
+              </div>`).join('')}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDiary(idx) {
+  document.getElementById('body'+idx).classList.toggle('open');
+  document.getElementById('chev'+idx).classList.toggle('open');
+}
+
+function deleteDiary(i) { state.diary.splice(i,1); save(); renderDiary(); renderGoals(); }
+
+function deleteDiaryFromModal() {
+  if (currentEditDiaryIdx === null) return;
+  state.diary.splice(currentEditDiaryIdx, 1);
+  currentEditDiaryIdx = null;
+  save(); closeModal('diaryModal');
+  document.getElementById('diaryDeleteBtn').style.display = 'none';
+  document.getElementById('diarySaveBtn').onclick = saveDiary;
+  renderDiary(); renderGoals();
+}
+
+function resetDiaryModal() {
+  mediaFiles = { workout: [], diet: [], etc: [] };
+  currentIntensity = 0;
+  ['workout','diet','etc'].forEach(cat => renderPreview(cat));
+  document.getElementById('workoutType').value = '';
+  document.getElementById('diaryDuration').value = '';
+  document.getElementById('dietSummary').value = '';
+  document.getElementById('dietCalories').value = '';
+  document.getElementById('contentWorkout').value = '';
+  document.getElementById('contentDiet').value = '';
+  document.getElementById('contentEtc').value = '';
+  document.querySelectorAll('#intensityPills .tag-pill').forEach(p => p.classList.remove('selected'));
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.toggle('active', t.dataset.cat === 'workout'));
+  document.querySelectorAll('.cat-panel').forEach(p => p.style.display = 'none');
+  document.getElementById('panel-workout').style.display = 'block';
+  currentCat = 'workout';
+}
+
+function openDiaryModal(dateStr) {
+  currentEditDiaryIdx = null;
+  document.getElementById('diaryDate').value = dateStr || fmtDate(today);
+  document.getElementById('diaryTitle').value = '';
+  resetDiaryModal();
+  document.getElementById('diaryModalTitle').textContent = '일기 작성';
+  document.getElementById('diaryDeleteBtn').style.display = 'none';
+  document.getElementById('diarySaveBtn').onclick = saveDiary;
+  document.getElementById('diaryModal').classList.add('open');
+}
+
+function openEditDiaryModal(i) {
+  currentEditDiaryIdx = i;
+  const e = state.diary[i];
+  document.getElementById('diaryDate').value = e.date;
+  document.getElementById('diaryTitle').value = e.title || '';
+  resetDiaryModal();
+  if (e.cats) {
+    ['workout','diet','etc'].forEach(cat => {
+      const c = e.cats[cat] || {};
+      mediaFiles[cat] = (c.media||[]).map(m => ({ ...m, name: m.caption||(m.type==='image'?'사진':'영상') }));
+      renderPreview(cat);
+      if (cat==='workout') {
+        document.getElementById('workoutType').value = c.workoutType||'';
+        document.getElementById('diaryDuration').value = c.duration||'';
+        document.getElementById('contentWorkout').value = c.memo||'';
+        currentIntensity = c.intensity||0;
+        document.querySelectorAll('#intensityPills .tag-pill').forEach(p => p.classList.toggle('selected', parseInt(p.dataset.val)===currentIntensity));
+      } else if (cat==='diet') {
+        document.getElementById('dietSummary').value = c.dietSummary||'';
+        document.getElementById('dietCalories').value = c.calories||'';
+        document.getElementById('contentDiet').value = c.memo||'';
+      } else {
+        document.getElementById('contentEtc').value = c.memo||'';
+      }
+    });
+  } else {
+    // legacy migration
+    document.getElementById('workoutType').value = e.workoutType||'';
+    document.getElementById('diaryDuration').value = e.duration||'';
+    document.getElementById('contentWorkout').value = e.content||'';
+    currentIntensity = e.intensity||0;
+    mediaFiles.workout = (e.media||[]).map(m => ({ ...m, name: m.caption||'사진' }));
+    renderPreview('workout');
+    document.querySelectorAll('#intensityPills .tag-pill').forEach(p => p.classList.toggle('selected', parseInt(p.dataset.val)===currentIntensity));
+  }
+  document.getElementById('diaryModalTitle').textContent = '일기 수정';
+  document.getElementById('diaryDeleteBtn').style.display = 'inline-flex';
+  document.getElementById('diarySaveBtn').onclick = () => updateDiary(i);
+  document.getElementById('diaryModal').classList.add('open');
+}
+
+function collectDiaryData() {
+  return {
+    workout: {
+      workoutType: document.getElementById('workoutType').value.trim(),
+      duration: document.getElementById('diaryDuration').value,
+      intensity: currentIntensity,
+      memo: document.getElementById('contentWorkout').value,
+      media: mediaFiles.workout.map(f => ({ type:f.type, data:f.data, caption:f.caption })),
+    },
+    diet: {
+      dietSummary: document.getElementById('dietSummary').value.trim(),
+      calories: document.getElementById('dietCalories').value,
+      memo: document.getElementById('contentDiet').value,
+      media: mediaFiles.diet.map(f => ({ type:f.type, data:f.data, caption:f.caption })),
+    },
+    etc: {
+      memo: document.getElementById('contentEtc').value,
+      media: mediaFiles.etc.map(f => ({ type:f.type, data:f.data, caption:f.caption })),
+    },
+  };
+}
+
+function saveDiary() {
+  const date = document.getElementById('diaryDate').value;
+  if (!date) { alert('날짜를 입력해주세요.'); return; }
+  const title = document.getElementById('diaryTitle').value.trim();
+  state.diary.push({ date, title: title||'일기', cats: collectDiaryData() });
+  save(); closeModal('diaryModal'); renderDiary(); renderGoals();
+}
+
+function updateDiary(i) {
+  const date = document.getElementById('diaryDate').value;
+  if (!date) { alert('날짜를 입력해주세요.'); return; }
+  const title = document.getElementById('diaryTitle').value.trim();
+  state.diary[i] = { date, title: title||'일기', cats: collectDiaryData() };
+  currentEditDiaryIdx = null;
+  save(); closeModal('diaryModal');
+  document.getElementById('diaryDeleteBtn').style.display = 'none';
+  document.getElementById('diarySaveBtn').onclick = saveDiary;
+  document.getElementById('diaryModalTitle').textContent = '일기 작성';
+  renderDiary(); renderGoals();
+}
+
+// ======= MODAL UTILS =======
+// ======= MODAL UTILS =======
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ======= LIGHTBOX =======
+function openLightbox(type, src, caption) {
+  const lb = document.getElementById('lightbox');
+  const content = document.getElementById('lbContent');
+  lb.classList.add('open');
+  document.getElementById('lbCaption').textContent = caption || '';
+  content.innerHTML = type === 'image'
+    ? `<img src="${src}">`
+    : `<video src="${src}" controls autoplay style="max-width:90vw;max-height:80vh;border-radius:8px;"></video>`;
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lbContent').innerHTML = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLightbox(); document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open')); }});
+
+// ======= UPLOAD DRAG & DROP =======
+document.querySelectorAll('.upload-zone').forEach((zone, idx) => {
+  const cats = ['workout','diet','etc'];
+  const cat = cats[idx] || 'workout';
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = 'rgba(255,255,255,0.4)'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.style.borderColor = '';
+    Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image')||f.type.startsWith('video')).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        mediaFiles[cat].push({ type: file.type.startsWith('video')?'video':'image', data: ev.target.result, caption: '', name: file.name });
+        renderPreview(cat);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+});
+
+// ======= INIT =======
+renderGoals();
+renderCalendar();
+planYear = today.getFullYear();
+planMonth = today.getMonth();
+renderPlans();
+// 메인 페이지 먼저 표시
+renderInbodyDashboard();
+</script>
+</body>
+</html>
