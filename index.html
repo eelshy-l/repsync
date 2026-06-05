@@ -231,6 +231,7 @@
     backdrop-filter: blur(6px);
   }
   .modal-overlay.open { display: flex; }
+  .body-lock { overflow: hidden !important; position: fixed; width: 100%; }
   .modal {
     background: var(--surface); border: 1px solid var(--border2);
     border-radius: 12px; padding: 1.75rem; width: min(640px, 95vw);
@@ -1026,19 +1027,19 @@ function openPwModal(action) {
   document.getElementById('pwModalSub').textContent = action
     ? '이 기능을 사용하려면 비밀번호를 입력하세요'
     : '수정 모드를 활성화하려면 비밀번호를 입력하세요';
-  document.getElementById('pwModal').classList.add('open');
+  openModal('pwModal');
   setTimeout(() => document.getElementById('pwInput').focus(), 100);
 }
 
 function closePwModal() {
-  document.getElementById('pwModal').classList.remove('open');
+  closeModal('pwModal');
   pwPendingAction = null;
 }
 
 function confirmPw() {
   const val = document.getElementById('pwInput').value;
   if (val === EDIT_PW) {
-    document.getElementById('pwModal').classList.remove('open');
+    closeModal('pwModal');
     if (pwPendingAction) {
       pwPendingAction();
       pwPendingAction = null;
@@ -1179,7 +1180,7 @@ function openInbodyModal() {
   document.getElementById('ib_adjF').value = d.adjF || '';
   document.getElementById('ib_adjM').value = d.adjM || '';
   document.getElementById('ibImagePreview').style.display = 'none';
-  document.getElementById('inbodyModal').classList.add('open');
+  openModal('inbodyModal');
 }
 
 function saveInbody() {
@@ -1428,7 +1429,7 @@ function openGoalModal() {
   document.getElementById('goalTarget').value = '';
   document.getElementById('goalDeleteBtn').style.display = 'none';
   document.getElementById('goalSaveBtn').onclick = saveGoal;
-  document.getElementById('goalModal').classList.add('open');
+  openModal('goalModal');
 }
 
 function saveGoal() {
@@ -1452,7 +1453,7 @@ function editGoal(i) {
   document.getElementById('goalCurrent').value = g.current || '';
   document.getElementById('goalTarget').value = g.target || '';
   document.getElementById('goalCategory').value = g.category;
-  document.getElementById('goalModal').classList.add('open');
+  openModal('goalModal');
   document.getElementById('goalDeleteBtn').style.display = 'inline-flex';
   document.getElementById('goalDeleteBtn').onclick = () => deleteGoal(i);
   const saveBtn = document.getElementById('goalSaveBtn');
@@ -1709,7 +1710,7 @@ function openPlanModal(type, key) {
     dateInput.value = key || fmtDate(today);
     dateInput.type = 'date';
   }
-  document.getElementById('planModal').classList.add('open');
+  openModal('planModal');
 }
 
 function savePlan() {
@@ -1932,7 +1933,7 @@ function openDiaryModal(dateStr) {
   document.getElementById('diaryModalTitle').textContent = '일기 작성';
   document.getElementById('diaryDeleteBtn').style.display = 'none';
   document.getElementById('diarySaveBtn').onclick = saveDiary;
-  document.getElementById('diaryModal').classList.add('open');
+  openModal('diaryModal');
 }
 
 function openEditDiaryModal(i) {
@@ -1973,7 +1974,7 @@ function openEditDiaryModal(i) {
   document.getElementById('diaryModalTitle').textContent = '일기 수정';
   document.getElementById('diaryDeleteBtn').style.display = 'inline-flex';
   document.getElementById('diarySaveBtn').onclick = () => updateDiary(i);
-  document.getElementById('diaryModal').classList.add('open');
+  openModal('diaryModal');
 }
 
 function collectDiaryData() {
@@ -2021,9 +2022,21 @@ function updateDiary(i) {
 
 // ======= MODAL UTILS =======
 // ======= MODAL UTILS =======
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.classList.add('body-lock');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.classList.remove('body-lock');
+}
 document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+  m.addEventListener('click', e => {
+    if (e.target === m) {
+      m.classList.remove('open');
+      document.body.classList.remove('body-lock');
+    }
+  });
 });
 
 // ======= LIGHTBOX =======
