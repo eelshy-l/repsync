@@ -28,6 +28,7 @@
     font-family: var(--font);
     font-weight: 700;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
   }
   /* HEADER */
@@ -342,7 +343,7 @@
   #lightbox img, #lightbox video { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
   #lightbox .lb-caption { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); color: white; font-size: 0.88rem; background: rgba(0,0,0,0.6); padding: 6px 18px; border-radius: 20px; }
   /* MAIN PAGE */
-  .main-page { min-height: 100vh; background: var(--bg); }
+  .main-page { min-height: 100vh; min-height: calc(var(--vh, 1vh) * 100); background: var(--bg); }
   .main-hero {
     display: flex; align-items: center; justify-content: space-between;
     padding: 2.5rem 3rem; border-bottom: 1px solid var(--border2); flex-wrap: wrap; gap: 1rem;
@@ -486,14 +487,7 @@
   }
 
   /* 모바일 하단 네비게이션 */
-  .mobile-nav {
-    display: none;
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-    background: rgba(14,14,14,0.97);
-    border-top: 1px solid var(--border2);
-    backdrop-filter: blur(20px);
-    padding: 6px 0 max(6px, env(safe-area-inset-bottom));
-  }
+  .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(14,14,14,0.97); border-top: 1px solid var(--border2); backdrop-filter: blur(20px); padding: 6px 0 max(6px, env(safe-area-inset-bottom)); }
   .mobile-nav-inner { display: flex; justify-content: space-around; align-items: center; }
   .mobile-nav-btn {
     display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -2082,6 +2076,12 @@ document.querySelectorAll('.upload-zone').forEach((zone, idx) => {
 });
 
 // ======= INIT =======
+// 모바일 브라우저 주소창 높이 변화 대응
+function setVh() {
+  document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+}
+setVh();
+window.addEventListener('resize', setVh);
 renderGoals();
 renderCalendar();
 planYear = today.getFullYear();
