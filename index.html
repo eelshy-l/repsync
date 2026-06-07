@@ -958,29 +958,12 @@ onValue(dbRef, (snapshot) => {
   const data = snapshot.val();
   _fbReady = true;
   if (data) {
-    // 로컬에 저장된 미디어는 보존하면서 텍스트 데이터만 병합
-    const localDiary = (window.state && window.state.diary) ? window.state.diary : [];
     window.state = data;
     if (!window.state.goals) window.state.goals = [];
     if (!window.state.plans) window.state.plans = { month: {}, week: {}, day: {} };
     if (!window.state.diary) window.state.diary = [];
     if (!window.state.inbody) window.state.inbody = null;
     if (!window.state.inbodyHistory) window.state.inbodyHistory = [];
-
-    // 미디어 복원: Firebase엔 미디어 메타만 있으므로 로컬 데이터에서 실제 데이터 복원
-    const localMediaStore = JSON.parse(localStorage.getItem('repsyncMedia') || '{}');
-    window.state.diary.forEach(entry => {
-      if (entry.cats) {
-        ['workout','diet','etc'].forEach(cat => {
-          const c = entry.cats[cat];
-          if (c && c.media) {
-            c.media.forEach(m => {
-              if (m.id && localMediaStore[m.id]) m.data = localMediaStore[m.id];
-            });
-          }
-        });
-      }
-    });
 
     if (window.syncState) window.syncState(window.state);
     refreshUI();
@@ -1002,32 +985,13 @@ function refreshUI() {
 }
 window.refreshUI = refreshUI;
 
-// 전역에 fbSave 등록 — 미디어는 로컬에만, Firebase엔 메타데이터만
+// 전역에 fbSave 등록 — 압축된 미디어 포함 전체 저장
 window.fbSave = function() {
   if (!window.state) return;
-  // 깊은 복사 후 미디어 데이터 분리
-  const clone = JSON.parse(JSON.stringify(window.state));
-  const mediaStore = JSON.parse(localStorage.getItem('repsyncMedia') || '{}');
-  if (clone.diary) {
-    clone.diary.forEach(entry => {
-      if (entry.cats) {
-        ['workout','diet','etc'].forEach(cat => {
-          const c = entry.cats[cat];
-          if (c && c.media) {
-            c.media.forEach(m => {
-              if (m.data && m.data.length > 200) {
-                if (!m.id) m.id = 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-                mediaStore[m.id] = m.data;
-                delete m.data; // Firebase엔 데이터 제거, id만 남김
-              }
-            });
-          }
-        });
-      }
-    });
-  }
-  localStorage.setItem('repsyncMedia', JSON.stringify(mediaStore));
-  set(dbRef, clone).catch(err => console.error('Firebase save error:', err));
+  set(dbRef, window.state).catch(err => {
+    console.error('Firebase save error:', err);
+    alert('온라인 저장 실패: 사진 용량이 너무 큽니다. 더 적은 수의 사진을 올려주세요.');
+  });
 };
 </script>
 
@@ -1847,8 +1811,8 @@ function handleFiles(e, cat) {
       };
       reader.readAsDataURL(file);
     } else {
-      // 이미지 자동 압축
-      compressImage(file, 1280, 0.7).then(dataUrl => {
+      // 이미지 자동 압축 (클라우드 동기화 위해 작게)
+      compressImage(file, 1000, 0.6).then(dataUrl => {
         mediaFiles[cat].push({ type: 'image', data: dataUrl, caption: '', name: file.name });
         renderPreview(cat);
       });
