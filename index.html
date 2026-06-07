@@ -233,16 +233,35 @@
   }
   /* MODAL */
   .modal-overlay {
-    display: none; position: fixed; inset: 0; z-index: 200;
-    background: rgba(0,0,0,0.85); align-items: center; justify-content: center;
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0,0,0,0.85);
+    align-items: center;
+    justify-content: center;
     backdrop-filter: blur(6px);
+    overflow: hidden;
+    overscroll-behavior: contain;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
   }
   .modal-overlay.open { display: flex; }
-  .body-lock { overflow: hidden !important; position: fixed; width: 100%; left: 0; right: 0; }
+  .body-lock {
+    overflow: hidden !important;
+    position: fixed;
+    width: 100%;
+    left: 0;
+    right: 0;
+    touch-action: none;
+  }
   .modal {
     background: var(--surface); border: 1px solid var(--border2);
     border-radius: 12px; padding: 1.75rem; width: min(640px, 95vw);
-    max-height: 90vh; overflow-y: auto;
+    max-height: min(90dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     animation: modalIn 0.25s ease;
   }
   @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(12px); } to { opacity: 1; transform: none; } }
@@ -342,7 +361,7 @@
   .intensity-dot.on { background: var(--text2); }
   /* LIGHTBOX */
   #lightbox {
-    display: none; position: fixed; inset: 0; z-index: 300;
+    display: none; position: fixed; inset: 0; z-index: 1100;
     background: rgba(0,0,0,0.92); align-items: center; justify-content: center; cursor: pointer;
   }
   #lightbox.open { display: flex; }
@@ -425,7 +444,7 @@
   .lock-btn:hover { background: var(--surface2); color: var(--text2); border-color: var(--border); }
   .lock-btn.unlocked { color: var(--text); border-color: var(--border); }
   .pw-modal-overlay {
-    display: none; position: fixed; inset: 0; z-index: 500;
+    display: none; position: fixed; inset: 0; z-index: 1200;
     background: rgba(0,0,0,0.88); align-items: center; justify-content: center;
     backdrop-filter: blur(8px);
   }
@@ -475,12 +494,35 @@
     .diary-filter-tabs { gap: 4px; }
     .diary-filter-tab { padding: 6px 12px; font-size: 0.75rem; }
     .media-grid { grid-template-columns: repeat(2,1fr); }
-    .modal { padding: 1.25rem; border-radius: 20px 20px 0 0; width: 100% !important; max-height: 92vh; }
-    .modal-overlay { align-items: flex-end; }
-    .modal-title { flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .modal-overlay {
+      align-items: flex-end;
+      justify-content: center;
+      padding-top: max(10px, env(safe-area-inset-top));
+      padding-bottom: 0;
+    }
+    .modal {
+      padding: 1.25rem;
+      padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+      border-radius: 20px 20px 0 0;
+      width: 100% !important;
+      max-width: none;
+      max-height: calc(92dvh - env(safe-area-inset-top));
+      margin: 0;
+    }
+    .modal-title {
+      position: sticky;
+      top: -1.25rem;
+      z-index: 5;
+      background: var(--surface);
+      padding: 0.15rem 0 0.75rem;
+      flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;
+    }
     .modal-title-text { font-size: 0.95rem; }
     .modal-title-actions { gap: 5px; }
     .btn-primary, .btn-cancel { padding: 7px 12px; font-size: 0.7rem; }
+    input[type="text"], input[type="date"], input[type="number"], textarea, select, .pw-input { font-size: 16px; }
+    .upload-preview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .preview-thumb { height: auto; aspect-ratio: 1 / 1; }
     .field-row { grid-template-columns: 1fr; }
     .ib-modal-grid { grid-template-columns: 1fr; }
     .cat-tab { padding: 8px 12px; font-size: 0.78rem; }
@@ -2098,28 +2140,44 @@ function updateDiary(i) {
 }
 
 // ======= MODAL UTILS =======
-// ======= MODAL UTILS =======
 let _scrollY = 0;
-function openModal(id) {
-  _scrollY = window.scrollY;
+
+function lockBodyScroll() {
+  _scrollY = window.scrollY || document.documentElement.scrollTop || 0;
   document.body.style.top = `-${_scrollY}px`;
   document.body.classList.add('body-lock');
-  document.getElementById(id).classList.add('open');
 }
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+
+function unlockBodyScroll() {
   document.body.classList.remove('body-lock');
   document.body.style.top = '';
   window.scrollTo(0, _scrollY);
+}
+
+function openModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  lockBodyScroll();
+  modal.classList.add('open');
+
+  // 모바일에서 이전 스크롤 위치가 남아 팝업 중간부터 열리는 현상 방지
+  const modalBody = modal.querySelector('.modal');
+  if (modalBody) modalBody.scrollTop = 0;
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.remove('open');
+  if (!document.querySelector('.modal-overlay.open')) unlockBodyScroll();
   if (window.refreshUI) setTimeout(window.refreshUI, 50);
 }
+
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => {
     if (e.target === m) {
       m.classList.remove('open');
-      document.body.classList.remove('body-lock');
-      document.body.style.top = '';
-      window.scrollTo(0, _scrollY);
+      if (!document.querySelector('.modal-overlay.open')) unlockBodyScroll();
+      if (window.refreshUI) setTimeout(window.refreshUI, 50);
     }
   });
 });
@@ -2138,7 +2196,13 @@ function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
   document.getElementById('lbContent').innerHTML = '';
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLightbox(); document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open')); }});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeLightbox();
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    if (!document.querySelector('.modal-overlay.open')) unlockBodyScroll();
+  }
+});
 
 // ======= UPLOAD DRAG & DROP =======
 document.querySelectorAll('.upload-zone').forEach((zone, idx) => {
