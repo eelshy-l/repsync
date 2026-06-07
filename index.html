@@ -173,6 +173,24 @@
   .plan-check.done { background: var(--text); border-color: var(--text); }
   .plan-check.done::after { content: '✓'; font-size: 0.65rem; color: #111; font-weight: 700; }
   .plan-text.done { text-decoration: line-through; color: var(--text3); }
+  .week-plan-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.75rem; margin-bottom: 0.75rem;
+  }
+  .week-plan-title-area { flex: 1; min-width: 0; }
+  .week-plan-title-area .plan-period { margin-bottom: 0; }
+  .week-plan-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .week-toggle-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border2);
+    background: var(--surface3); color: var(--text2); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; line-height: 1; transition: all 0.18s;
+  }
+  .week-toggle-btn:hover { border-color: var(--border); color: var(--text); }
+  .week-toggle-btn.collapsed { transform: rotate(-90deg); }
+  .week-plan-content { overflow: hidden; }
+  .week-plan-content.collapsed { display: none; }
+  .goal-card { cursor: pointer; }
   /* DIARY */
   .diary-toolbar {
     display: flex; align-items: center; justify-content: space-between;
@@ -549,6 +567,51 @@
   .mn-bar { width: 0; height: 2px; background: var(--text); border-radius: 2px; margin-top: 3px; transition: width 0.2s; }
   .mobile-nav-btn.active .mn-bar { width: 18px; }
   @media (max-width: 768px) { .mobile-nav { display: block; } }
+
+
+  /* ===== MOBILE DATE INPUT SIZE FIX ===== */
+  input[type="date"] {
+    min-height: 44px;
+    height: 44px;
+    line-height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  @media (max-width: 768px) {
+    input[type="text"],
+    input[type="date"],
+    input[type="number"],
+    select {
+      min-height: 52px;
+      height: 52px;
+      padding-top: 0;
+      padding-bottom: 0;
+      line-height: 52px;
+    }
+
+    input[type="date"] {
+      display: block;
+      text-align: left;
+      -webkit-appearance: none;
+      appearance: none;
+      background-color: var(--surface2);
+      border-radius: var(--radius-sm);
+    }
+
+    input[type="date"]::-webkit-date-and-time-value {
+      text-align: left;
+      min-height: 52px;
+      line-height: 52px;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      opacity: 0.7;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -1467,14 +1530,14 @@ function renderGoals() {
   state.goals.forEach((g, i) => {
     const [col, bg] = catColors[g.category] || ['#a09cc0','rgba(160,156,192,0.15)'];
     grid.innerHTML += `
-      <div class="goal-card ${g.done ? 'achieved' : ''}">
-        <button class="btn-edit" onclick="requireUnlock(()=>editGoal(${i}))"></button>
+      <div class="goal-card ${g.done ? 'achieved' : ''}" onclick="requireUnlock(()=>editGoal(${i}))">
+        <button class="btn-edit" onclick="event.stopPropagation();requireUnlock(()=>editGoal(${i}))">✎</button>
         <div class="tag" style="background:${bg};color:${col}">${g.category}</div>
         <div class="goal-title">${g.title}</div>
         <div class="goal-desc">${g.desc || ''}</div>
         ${(g.current || g.target) ? `<div style="font-size:0.8rem;color:var(--text3);margin-bottom:0.75rem;">${g.current ? '현재: ' + g.current : ''} ${g.current && g.target ? '→' : ''} ${g.target ? '목표: ' + g.target : ''}</div>` : ''}
         <div class="goal-done-row">
-          <div class="goal-done-check ${g.done ? 'done' : ''}" onclick="requireUnlock(()=>toggleGoalDone(${i}))">${g.done ? '✓' : ''}</div>
+          <div class="goal-done-check ${g.done ? 'done' : ''}" onclick="event.stopPropagation();requireUnlock(()=>toggleGoalDone(${i}))">${g.done ? '✓' : ''}</div>
           <span class="goal-done-label">${g.done ? '달성 완료' : '달성 완료로 표시'}</span>
         </div>
       </div>`;
@@ -1504,11 +1567,13 @@ function toggleGoalDone(i) {
 }
 
 function openGoalModal() {
+  document.querySelector('#goalModal .modal-title-text').textContent = '목표 추가';
   document.getElementById('goalTitle').value = '';
   document.getElementById('goalDesc').value = '';
   document.getElementById('goalCurrent').value = '';
   document.getElementById('goalTarget').value = '';
   document.getElementById('goalDeleteBtn').style.display = 'none';
+  document.getElementById('goalSaveBtn').textContent = '확인';
   document.getElementById('goalSaveBtn').onclick = saveGoal;
   openModal('goalModal');
 }
@@ -1529,6 +1594,8 @@ function saveGoal() {
 
 function editGoal(i) {
   const g = state.goals[i];
+  document.querySelector('#goalModal .modal-title-text').textContent = '목표 수정';
+  document.getElementById('goalSaveBtn').textContent = '확인';
   document.getElementById('goalTitle').value = g.title;
   document.getElementById('goalDesc').value = g.desc || '';
   document.getElementById('goalCurrent').value = g.current || '';
@@ -1645,6 +1712,13 @@ let planYear = today.getFullYear();
 let planMonth = today.getMonth();
 let currentPlanType = 'month';
 let currentPlanKey = '';
+let collapsedWeeks = JSON.parse(localStorage.getItem('repsyncCollapsedWeeks') || '{}');
+
+function toggleWeekCollapse(key) {
+  collapsedWeeks[key] = !collapsedWeeks[key];
+  localStorage.setItem('repsyncCollapsedWeeks', JSON.stringify(collapsedWeeks));
+  renderPlans();
+}
 
 function fmtMonth(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function fmtWeek(d) {
@@ -1722,6 +1796,7 @@ function renderPlans() {
 
   weeks.forEach(w => {
     const isCurrentWeek = fmtWeek(today) === w.key;
+    const isCollapsed = !!collapsedWeeks[w.key];
     const weekLabel = `${w.mon.getMonth()+1}/${w.mon.getDate()} – ${w.sun.getMonth()+1}/${w.sun.getDate()}`;
 
     // 주간 계획 카드
@@ -1749,17 +1824,22 @@ function renderPlans() {
 
     container.innerHTML += `
       <div class="plan-card" style="margin-bottom:1rem;${isCurrentWeek?'border-color:rgba(255,255,255,0.25);':''}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
-          <div>
+        <div class="week-plan-header">
+          <button class="week-toggle-btn ${isCollapsed ? 'collapsed' : ''}" onclick="toggleWeekCollapse('${w.key}')" aria-label="주간 계획 접기/펼치기">⌄</button>
+          <div class="week-plan-title-area">
             <div class="plan-label">주간 계획${isCurrentWeek?' (이번 주)':''}</div>
             <div class="plan-period">${weekLabel}</div>
           </div>
-          <button class="btn-primary" style="font-size:0.78rem;padding:6px 14px;" onclick="requireUnlock(()=>openPlanModal('week','${w.key}'))">+ 추가</button>
+          <div class="week-plan-actions">
+            <button class="btn-primary" style="font-size:0.78rem;padding:6px 14px;" onclick="requireUnlock(()=>openPlanModal('week','${w.key}'))">+ 추가</button>
+          </div>
         </div>
-        <ul class="plan-list" style="margin-bottom:${daysHTML?'1rem':'0'};">
-          ${weekPlans.map((p,i) => planItemHTML('week', w.key, i, p)).join('') || `<li style="color:var(--text3);font-size:0.82rem;border:none;">주간 계획이 없습니다.</li>`}
-        </ul>
-        ${daysHTML ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">${daysHTML}</div>` : ''}
+        <div class="week-plan-content ${isCollapsed ? 'collapsed' : ''}">
+          <ul class="plan-list" style="margin-bottom:${daysHTML?'1rem':'0'};">
+            ${weekPlans.map((p,i) => planItemHTML('week', w.key, i, p)).join('') || `<li style="color:var(--text3);font-size:0.82rem;border:none;">주간 계획이 없습니다.</li>`}
+          </ul>
+          ${daysHTML ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">${daysHTML}</div>` : ''}
+        </div>
       </div>`;
   });
 }
