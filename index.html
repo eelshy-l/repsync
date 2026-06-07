@@ -945,43 +945,105 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dbRef = ref(db, 'repsync');
 
+let _fbReady = false;
+
 // Firebase에서 실시간으로 데이터 수신
 onValue(dbRef, (snapshot) => {
   const data = snapshot.val();
+  _fbReady = true;
   if (data) {
-    state = data;
-    if (!state.goals) state.goals = [];
-    if (!state.plans) state.plans = { month: {}, week: {}, day: {} };
-    if (!state.diary) state.diary = [];
-    if (!state.inbody) state.inbody = null;
-    if (!state.inbodyHistory) state.inbodyHistory = [];
-    // 현재 열린 탭 새로고침
-    const activeSection = document.querySelector('.section.active');
-    if (activeSection) {
-      const id = activeSection.id;
-      if (id === 'goals') renderGoals();
-      if (id === 'calendar') renderCalendar();
-      if (id === 'plans') renderPlans();
-      if (id === 'diary') renderDiary();
-    }
-    renderInbodyDashboard();
+    // 로컬에 저장된 미디어는 보존하면서 텍스트 데이터만 병합
+    const localDiary = (window.state && window.state.diary) ? window.state.diary : [];
+    window.state = data;
+    if (!window.state.goals) window.state.goals = [];
+    if (!window.state.plans) window.state.plans = { month: {}, week: {}, day: {} };
+    if (!window.state.diary) window.state.diary = [];
+    if (!window.state.inbody) window.state.inbody = null;
+    if (!window.state.inbodyHistory) window.state.inbodyHistory = [];
+
+    // 미디어 복원: Firebase엔 미디어 메타만 있으므로 로컬 데이터에서 실제 데이터 복원
+    const localMediaStore = JSON.parse(localStorage.getItem('repsyncMedia') || '{}');
+    window.state.diary.forEach(entry => {
+      if (entry.cats) {
+        ['workout','diet','etc'].forEach(cat => {
+          const c = entry.cats[cat];
+          if (c && c.media) {
+            c.media.forEach(m => {
+              if (m.id && localMediaStore[m.id]) m.data = localMediaStore[m.id];
+            });
+          }
+        });
+      }
+    });
+
+    if (window.syncState) window.syncState(window.state);
+    refreshUI();
   }
 });
 
-// 전역에 fbSave 등록
+function refreshUI() {
+  // 모달이 열려 있으면 입력 중이므로 리렌더 건너뛰기 (깜빡임 방지)
+  if (document.querySelector('.modal-overlay.open')) return;
+  const activeSection = document.querySelector('.section.active');
+  if (activeSection) {
+    const id = activeSection.id;
+    if (id === 'goals' && typeof renderGoals === 'function') renderGoals();
+    if (id === 'calendar' && typeof renderCalendar === 'function') renderCalendar();
+    if (id === 'plans' && typeof renderPlans === 'function') renderPlans();
+    if (id === 'diary' && typeof renderDiary === 'function') renderDiary();
+  }
+  if (typeof renderInbodyDashboard === 'function') renderInbodyDashboard();
+}
+window.refreshUI = refreshUI;
+
+// 전역에 fbSave 등록 — 미디어는 로컬에만, Firebase엔 메타데이터만
 window.fbSave = function() {
-  set(dbRef, state).catch(err => console.error('Firebase save error:', err));
+  if (!window.state) return;
+  // 깊은 복사 후 미디어 데이터 분리
+  const clone = JSON.parse(JSON.stringify(window.state));
+  const mediaStore = JSON.parse(localStorage.getItem('repsyncMedia') || '{}');
+  if (clone.diary) {
+    clone.diary.forEach(entry => {
+      if (entry.cats) {
+        ['workout','diet','etc'].forEach(cat => {
+          const c = entry.cats[cat];
+          if (c && c.media) {
+            c.media.forEach(m => {
+              if (m.data && m.data.length > 200) {
+                if (!m.id) m.id = 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                mediaStore[m.id] = m.data;
+                delete m.data; // Firebase엔 데이터 제거, id만 남김
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+  localStorage.setItem('repsyncMedia', JSON.stringify(mediaStore));
+  set(dbRef, clone).catch(err => console.error('Firebase save error:', err));
 };
 </script>
 
 <script>
 // ======= STATE =======
-let state = JSON.parse(localStorage.getItem('workoutJournal') || '{}');
+window.state = JSON.parse(localStorage.getItem('workoutJournal') || '{}');
+let state = window.state;
 if (!state.goals) state.goals = [];
 if (!state.plans) state.plans = { month: {}, week: {}, day: {} };
 if (!state.diary) state.diary = [];
 if (!state.inbody) state.inbody = null;
 if (!state.inbodyHistory) state.inbodyHistory = [];
+// 로컬 미디어 복원
+(function restoreLocalMedia(){
+  const mediaStore = JSON.parse(localStorage.getItem('repsyncMedia') || '{}');
+  (state.diary||[]).forEach(entry => {
+    if (entry.cats) ['workout','diet','etc'].forEach(cat => {
+      const c = entry.cats[cat];
+      if (c && c.media) c.media.forEach(m => { if (m.id && mediaStore[m.id] && !m.data) m.data = mediaStore[m.id]; });
+    });
+  });
+})();
 
 const today = new Date();
 let calYear = today.getFullYear();
@@ -989,9 +1051,15 @@ let calMonth = today.getMonth();
 let selectedCalDate = null;
 
 function save() {
+  window.state = state;
   localStorage.setItem('workoutJournal', JSON.stringify(state));
   if (window.fbSave) window.fbSave();
 }
+
+// Firebase 모듈이 데이터를 받으면 이 함수로 일반 스크립트의 state 갱신
+window.syncState = function(newState) {
+  state = newState;
+};
 
 // ======= PASSWORD LOCK =======
 const EDIT_PW = '1234'; // ← 여기서 비밀번호 변경
@@ -2028,6 +2096,7 @@ function closeModal(id) {
   document.body.classList.remove('body-lock');
   document.body.style.top = '';
   window.scrollTo(0, _scrollY);
+  if (window.refreshUI) setTimeout(window.refreshUI, 50);
 }
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => {
