@@ -231,7 +231,7 @@
     backdrop-filter: blur(6px);
   }
   .modal-overlay.open { display: flex; }
-  .body-lock { overflow: hidden !important; position: fixed; width: 100%; }
+  .body-lock { overflow: hidden !important; position: fixed; width: 100%; left: 0; right: 0; }
   .modal {
     background: var(--surface); border: 1px solid var(--border2);
     border-radius: 12px; padding: 1.75rem; width: min(640px, 95vw);
@@ -2022,19 +2022,26 @@ function updateDiary(i) {
 
 // ======= MODAL UTILS =======
 // ======= MODAL UTILS =======
+let _scrollY = 0;
 function openModal(id) {
-  document.getElementById(id).classList.add('open');
+  _scrollY = window.scrollY;
+  document.body.style.top = `-${_scrollY}px`;
   document.body.classList.add('body-lock');
+  document.getElementById(id).classList.add('open');
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   document.body.classList.remove('body-lock');
+  document.body.style.top = '';
+  window.scrollTo(0, _scrollY);
 }
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => {
     if (e.target === m) {
       m.classList.remove('open');
       document.body.classList.remove('body-lock');
+      document.body.style.top = '';
+      window.scrollTo(0, _scrollY);
     }
   });
 });
