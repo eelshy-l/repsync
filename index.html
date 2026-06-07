@@ -2,7 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="REPSYNC">
+<meta name="theme-color" content="#0e0e0e">
 <title>REPSYNC</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -22,6 +27,7 @@
     --font-brand: 'Inter', var(--font);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: auto; }
   body {
     background: var(--bg);
     color: var(--text);
@@ -1052,7 +1058,12 @@ let selectedCalDate = null;
 
 function save() {
   window.state = state;
-  localStorage.setItem('workoutJournal', JSON.stringify(state));
+  try {
+    localStorage.setItem('workoutJournal', JSON.stringify(state));
+  } catch (err) {
+    alert('저장 공간이 부족합니다. 오래된 사진/영상을 삭제하거나 줄여주세요.');
+    console.error('localStorage 초과:', err);
+  }
   if (window.fbSave) window.fbSave();
 }
 
@@ -1824,14 +1835,52 @@ function triggerUpload(cat) {
 
 function handleFiles(e, cat) {
   Array.from(e.target.files).forEach(file => {
+    if (file.type.startsWith('video')) {
+      // 영상은 압축 어려움 — 크기 경고
+      if (file.size > 3 * 1024 * 1024) {
+        alert('영상이 너무 큽니다 (3MB 초과). 저장이 안 될 수 있어요. 짧은 영상을 권장합니다.');
+      }
+      const reader = new FileReader();
+      reader.onload = ev => {
+        mediaFiles[cat].push({ type: 'video', data: ev.target.result, caption: '', name: file.name });
+        renderPreview(cat);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // 이미지 자동 압축
+      compressImage(file, 1280, 0.7).then(dataUrl => {
+        mediaFiles[cat].push({ type: 'image', data: dataUrl, caption: '', name: file.name });
+        renderPreview(cat);
+      });
+    }
+  });
+  e.target.value = '';
+}
+
+function compressImage(file, maxSize, quality) {
+  return new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = ev => {
-      mediaFiles[cat].push({ type: file.type.startsWith('video') ? 'video' : 'image', data: ev.target.result, caption: '', name: file.name });
-      renderPreview(cat);
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxSize) {
+          height = Math.round(height * maxSize / width);
+          width = maxSize;
+        } else if (height > maxSize) {
+          width = Math.round(width * maxSize / height);
+          height = maxSize;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   });
-  e.target.value = '';
 }
 
 function renderPreview(cat) {
